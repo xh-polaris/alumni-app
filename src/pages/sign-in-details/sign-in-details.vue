@@ -42,7 +42,7 @@ import VerificationCode from "@/components/VerificationCode.vue";
 import { getCheckInDetails } from "@/api/check-in";
 import type { checkInDetails } from "@/api/check-in";
 
-const activityId = "67486c5422ded7a41d86aa7a";
+const activityId = "6749c844c9fc4f1f67c398dc";
 const checkInDetails = ref<checkInDetails | null>(null);
 const searchQuery = ref('');
 const isModalVisible = ref(false); // 控制modal的显示与隐藏

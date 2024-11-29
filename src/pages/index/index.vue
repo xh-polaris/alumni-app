@@ -24,7 +24,7 @@ import { ref } from "vue";
 import { signIn, getCheckInDetails } from "@/api/check-in";
 import type { checkInData, checkInResponse, checkInDetails } from "@/api/check-in";
 
-const FIRST_ID = "67486c5422ded7a41d86aa7a"; // id for test
+const FIRST_ID = "6749c844c9fc4f1f67c398dc"; // id for test
 // TODO : 获取活动id
 const name = ref<string>("");
 const responseMessage = ref<string>("");
