@@ -3,21 +3,24 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": ""
+        "navigationBarTitleText": "",
+        "enablePullDownRefresh": true,
+        "navigationBarBackgroundColor": "#e1efc4"
       }
     },
     {
       "path": "pages/sign-in-details/sign-in-details",
       "style": {
         "navigationBarTitleText": "",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": true,
+        "navigationBarBackgroundColor": "#e1efc4"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "uni-app",
-    "navigationBarBackgroundColor": "#F8F8F8",
+    "navigationBarBackgroundColor": "#e1efc4",
     "backgroundColor": "#F8F8F8"
   }
 }
