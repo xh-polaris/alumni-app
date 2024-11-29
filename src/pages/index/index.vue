@@ -15,7 +15,7 @@
       <button class="sign-button" @click="handleSignIn" :disabled="isSignedIn">{{ isSignedIn ? '已签到' : '点击签到' }}</button>
       <view v-if="responseMessage" class="response-message">{{ responseMessage }}</view>
     </view>
-    <button class="fixed-button" @click="navigateToDetails">查看签到详情</button>
+    <button class="fixed-button" @longpress="navigateToDetails">查看签到详情</button>
   </view>
 </template>
 
@@ -168,19 +168,17 @@ const navigateToDetails = () => {
 
 .fixed-button {
   position: fixed;
-  bottom: 20rpx;
-  right: 20rpx;
+  top: 20rpx;
+  left: 20rpx;
   padding: 10rpx 20rpx;
-  background-color: #007bff;
-  color: white;
-  border: none;
+  background-color: #e1efc4;
+  color: #e1efc4;
   border-radius: 20rpx;
   z-index: 1000;
+  opacity: 0;
+  border: none;
 }
 
-.fixed-button:hover {
-  background-color: #0056b3;
-}
 
 .response-message {
   font-size: 40rpx;
