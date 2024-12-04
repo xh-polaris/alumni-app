@@ -1,37 +1,45 @@
 <template>
-  <VerificationCode>
-    <view class="sign-in-details">
-      <view class="button" @click="fetchCheckInDetails">
-        更新签到情况
-      </view>
-      <view class="button" @click="openModal">
-        添加用户
-      </view>
-      <view v-if="isModalVisible" class="modal-overlay">
-        <view class="modal-content">
-          <text>添加用户</text>
-          <input
-              v-model="newUserName"
-              placeholder="请输入姓名"
-              class="add-user-input"
-          />
-          <view class="modal-buttons">
-            <button class="modal-button" @click="handleRegister">确定</button>
-            <button class="modal-button" @click="closeModal">取消</button>
+  <view class="page">
+    <VerificationCode>
+      <view class="sign-in-details">
+        <view class="button" @click="fetchCheckInDetails">
+          更新签到情况
+        </view>
+        <view class="button" @click="openModal">
+          添加用户
+        </view>
+        <view v-if="isModalVisible" class="modal-overlay">
+          <view class="modal-content">
+            <text>添加用户</text>
+            <input
+                v-model="newUserName"
+                placeholder="请输入姓名"
+                class="add-user-input"
+            />
+            <view class="modal-buttons">
+              <button class="modal-button" @click="handleRegister">确定</button>
+              <button class="modal-button" @click="closeModal">取消</button>
+            </view>
+          </view>
+        </view>
+        <input v-model="searchQuery" placeholder="搜索用户" class="search-input" />
+        <view class="search-input">签到情况：{{ checkInDetails.checked }}/{{ checkInDetails.total }}</view>
+        <view v-if="checkInDetails" class="details-container">
+          <view class="registers-list">
+            <view v-for="register in filteredRegisters" :key="register.id" class="register-item">
+              <view class="register-name">
+                {{ register.name }}
+              </view>
+              <view class="register-status">
+                {{ register.checkIn ? '已签到' : '未签到' }}
+              </view>
+            </view>
           </view>
         </view>
       </view>
-      <input v-model="searchQuery" placeholder="搜索用户" class="search-input" />
-      <view v-if="checkInDetails" class="details-container">
-        <view class="summary">签到情况：{{ checkInDetails.checked }}/{{ checkInDetails.total }}</view>
-        <view class="registers-list">
-          <view v-for="register in filteredRegisters" :key="register.id" class="register-item">
-            {{ register.name }}: {{ register.checkIn ? '已签到' : '未签到' }}
-          </view>
-        </view>
-      </view>
-    </view>
-  </VerificationCode>
+    </VerificationCode>
+    <image class="background-image" src="@/static/logo.png"/>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -42,7 +50,7 @@ import VerificationCode from "@/components/VerificationCode.vue";
 import { getCheckInDetails } from "@/api/check-in";
 import type { checkInDetails } from "@/api/check-in";
 
-const activityId = "6749c844c9fc4f1f67c398dc";
+const activityId = "674b0c0cc9fc4f1f67c398e4";
 const checkInDetails = ref<checkInDetails | null>(null);
 const searchQuery = ref('');
 const isModalVisible = ref(false); // 控制modal的显示与隐藏
@@ -125,43 +133,64 @@ const filteredRegisters = computed(() => {
 </script>
 
 <style scoped>
+.page {
+  position: relative;
+  overflow: auto;
+  overflow-x: hidden;
+  height: 100vh;
+  background-color: #f5f5fa;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
 .button {
   padding: 10px;
-  background-color: #007bff;
+  width: 250px;
+  background-color: #a2e494;
   color: white;
-  border-radius: 5px;
+  border: none;
+  border-radius: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 15px;
   text-align: center;
-  cursor: pointer;
-  font-size: 18px; /* 增大按钮文字大小 */
-  margin-bottom: 40rpx;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .button:hover {
-  background-color: #0056b3;
+  background-color: darkgreen;
 }
 
 .search-input {
-  margin-top: 40rpx;
-  padding: 20rpx;
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 36rpx; /* 增大输入框文字大小 */
+  width: 250px;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  background-color: #fafafa;
+  opacity: 0.9;
+  z-index: 1;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .details-container {
-  margin-top: 40rpx;
+  margin-top: -5px;
   max-height: 80vh; /* 设置最大高度 */
   overflow-y: auto; /* 内容溢出时滚动 */
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 20rpx;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  padding: 10px;
+  z-index: 1;
+  opacity: 0.8;
+  margin-left: auto;
+  margin-right: auto;
+  width: 250px;
+  text-align: center;
 }
 
-.summary {
-  font-size: 24px; /* 增大签到情况文字大小 */
-  margin-bottom: 10px;
-}
 
 .registers-list {
   list-style-type: none;
@@ -170,6 +199,10 @@ const filteredRegisters = computed(() => {
 }
 
 .register-item {
+  margin-left: 10%;
+  width: 60%;
+  display: flex;
+  justify-content: space-between;
   font-size: 18px; /* 增大每个注册用户的文字大小 */
   margin-bottom: 10px;
 }
@@ -177,55 +210,80 @@ const filteredRegisters = computed(() => {
 .sign-in-details {
   display: flex;
   flex-direction: column;
-  margin: 20rpx;
+  margin: 10px;
 }
 .modal-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  height: 850px;
+  overflow: auto;
+  width : 100vw;
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index:10;
+  backdrop-filter: blur(2px);
 }
 
 .modal-content {
+  margin-top: -200px;
   background: white;
   padding: 20px;
-  border-radius: 5px;
+  border-radius: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 300px;
-  max-width: 90%;
+  width: 80vw;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .add-user-input {
-  margin-top: 20rpx;
-  padding: 20rpx;
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 36rpx; /* 增大输入框文字大小 */
+  margin-top: 10px;
+  padding: 10px;
+  width: calc(80% - 20px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  font-size: 18px; /* 增大输入框文字大小 */
 }
 
 .modal-buttons {
-  margin-top: 20rpx;
+  margin-top: 10px;
+  width: 80%;
   display: flex;
   justify-content: space-between;
 }
 
 .modal-button {
-  padding: 10px;
-  background-color: #007bff;
+  padding: 5px;
+  background-color: #a2e494;
   color: white;
-  border-radius: 5px;
+  border-radius: 20px;
   text-align: center;
   cursor: pointer;
   font-size: 18px; /* 增大按钮文字大小 */
+  width: 40%;
+  margin-left: 0;
+  margin-right: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .modal-button:hover {
-  background-color: #0056b3;
+  background-color: darkgreen;
+}
+
+.background-image {
+  position: absolute;
+  top: 100px;
+  right: -200px;
+  width: 500px;
+  height: 510px;
+  object-fit: contain;
+  opacity: 0.3;
+  z-index: 0;
 }
 </style>

@@ -30,7 +30,8 @@ const verifyCode = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  height: 850px;
+  overflow: auto;
 }
 
 .verification-code-container {
@@ -39,11 +40,13 @@ const verifyCode = () => {
   align-items: center;
   justify-content: center;
   background-color: #fff;
-  height: 40vh;
+  height: 300px;
   width: 80%;
-  border-radius: 20rpx;
-  padding: 40rpx;
+  border-radius: 20px;
+  padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+  opacity: 0.8;
 }
 
 .head {
@@ -55,23 +58,23 @@ const verifyCode = () => {
   padding: 10px;
   margin: 10px 0;
   width: 200px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
   font-size: 18px;
+  background-color: #f5f5fa;
 }
 
 button {
-  width: 40%;
-  padding: 15rpx;
-  background-color: #007bff;
+  width: 220px;
+  padding: 2px;
+  background-color: #a2e494;
   color: white;
   border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 18px;
+  border-radius: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: darkgreen;
 }
 </style>
