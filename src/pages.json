@@ -1,7 +1,31 @@
 {
   "pages": [
     {
-      "path": "pages/index/index",
+      "path": "pages/news/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "enablePullDownRefresh": false,
+        "navigationBarBackgroundColor": "#13714a"
+      }
+    },
+    {
+      "path": "pages/activity/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "enablePullDownRefresh": false,
+        "navigationBarBackgroundColor": "#13714a"
+      }
+    },
+    {
+      "path": "pages/mine/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "enablePullDownRefresh": false,
+        "navigationBarBackgroundColor": "#13714a"
+      }
+    },
+    {
+      "path": "pages/check-in/index",
       "style": {
         "navigationBarTitleText": "",
         "enablePullDownRefresh": false,
@@ -20,7 +44,35 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "uni-app",
-    "navigationBarBackgroundColor": "#f9f9fa",
+    "navigationBarBackgroundColor": "#13714a",
     "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "",
+    "list": [
+      {
+        "pagePath": "pages/news/index",
+        "iconPath": "static/tabBar/news.png",
+        "selectedIconPath": "static/tabBar/news_HL.png",
+        "text": "资讯"
+      },
+      {
+        "pagePath": "pages/activity/index",
+        "iconPath": "static/tabBar/activity.png",
+        "selectedIconPath": "static/tabBar/activity_HL.png",
+        "text": "活动"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "iconPath": "static/tabBar/mine.png",
+        "selectedIconPath": "static/tabBar/mine_HL.png",
+        "text": "我的"
+      }
+    ],
+    "selectedColor": "",
+    "backgroundColor": "#f9f9fa",
+    "borderStyle": "black",
+    "height": "55px",
+    "fontSize": "12px"
   }
 }

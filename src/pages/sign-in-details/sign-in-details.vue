@@ -38,7 +38,7 @@
         </view>
       </view>
     </VerificationCode>
-    <image class="background-image" src="@/static/logo.png"/>
+    <image class="background-image" src="/static/logo.png"/>
   </view>
 </template>
 

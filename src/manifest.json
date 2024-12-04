@@ -1,7 +1,7 @@
 {
-    "name" : "",
+    "name" : "alumni",
     "appid" : "",
-    "description" : "",
+    "description" : "上海市北仑商会小程序",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
