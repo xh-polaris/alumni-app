@@ -12,7 +12,15 @@
       "path": "pages/activity/index",
       "style": {
         "navigationBarTitleText": "",
-        "enablePullDownRefresh": false,
+        "enablePullDownRefresh": true,
+        "navigationBarBackgroundColor": "#13714a"
+      }
+    },
+    {
+      "path": "pages/activity/details",
+      "style": {
+        "navigationBarTitleText": "",
+        "enablePullDownRefresh": true,
         "navigationBarBackgroundColor": "#13714a"
       }
     },

@@ -1,9 +1,7 @@
 <template>
   <view class="layout">
     <view class="overlay"></view>
-    <view class="background-container">
       <slot></slot>
-    </view>
     <image class="background-image" src="@/static/logo.png"/>
   </view>
 </template>
@@ -20,12 +18,12 @@
 
 .overlay {
   position: absolute;
-  top: -230px;
+  top: -280px;
   left: calc(50% - 350px);
   width: 700px;
   height: 300px;
   background-color: #13714a;
-  border-radius: 50% / 150px;
+  border-radius: 50% / 50px;
   z-index: 10;
 }
 
