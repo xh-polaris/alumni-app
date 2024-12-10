@@ -1,7 +1,7 @@
 <template>
   <view class="layout">
     <view class="overlay"></view>
-      <slot></slot>
+    <slot></slot>
     <image class="background-image" src="@/static/logo.png"/>
   </view>
 </template>

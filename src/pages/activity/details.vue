@@ -1,35 +1,36 @@
 <script setup lang="ts">
 import Layout from "@/components/Layout.vue";
+import MetaInfo from "@/pages/activity/details/MetaInfo.vue";
+import Header from "@/pages/activity/details/Header.vue";
+import {getActivityDetails} from "@/api/activity/activity";
 import type { Activity } from "@/api/activity/activity-interface";
-import { onLoad } from "@dcloudio/uni-app";
-import { ref } from "vue";
+import {ref} from "vue";
+import {onLoad} from "@dcloudio/uni-app";
 
-const activityDetails = ref<Activity | null>(null);
 
-onLoad(() => {
-  const storedActivity = uni.getStorageSync('activity');
-  console.log(storedActivity);
+const activityDetails = ref<Activity>;
+const isLoading = ref(true);
 
-  // 确保从 localStorage 获取的数据是有效的
-  if (storedActivity) {
-    activityDetails.value = storedActivity;
-    console.log(activityDetails.value); // 这里可以打印出实际数据，确认是否正确赋值
-  }
+onLoad((option) => {
+  isLoading.value = true;
+  console.log(option.id);
+
+  const res = getActivityDetails({ id: option.id });
+  res.then((res) => {
+    activityDetails.value = res.activity;
+    isLoading.value = false; // 数据加载完成
+    console.log(activityDetails.value);
+  });
 });
+
 </script>
 
 <template>
   <layout>
-    <view class ="activity-details">
-      <view class="activity-item">{{ activityDetails?.name }}</view>
-      <view class="activity-item">{{ activityDetails?.start }}</view>
-      <view class="activity-item">{{ activityDetails?.location }}</view>
-      <view class="activity-item">{{ activityDetails?.sponsor }}</view>
-      <view class="activity-item">{{ activityDetails?.contact }}</view>
-      <view class="activity-item">{{ activityDetails?.description }}</view>
-      <view class="activity-register">
-        <button class="register-button" @click="">报名</button>
-      </view>
+    <view class="activity-details" v-if="!isLoading">
+      <Header :activity="activityDetails.value"></Header>
+      <MetaInfo :activity="activityDetails.value"></MetaInfo>
+      <button @click="">报名</button>
     </view>
   </layout>
 </template>
@@ -38,34 +39,27 @@ onLoad(() => {
 .activity-details {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 60%;
-  width: 80%;
-  padding: 20px;
+  height: 70%;
+  width: 100%;
   background: #ffffff;
-  border-radius: 20px;
+  border-radius: 50rpx 50rpx 0 0 ;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
   overflow-y: auto;
   overflow-x: hidden ;
   z-index: 1;
-  opacity: 0.8;
-  margin-top: 100rpx;
+  opacity: 0.85;
+  margin-top: auto;
 }
-.activity-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  margin: 10px;
-  padding: 10px;
-  border-radius: 10px;
-  background: #f5f5f5;
-  width: 80%;
-  height: 40px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #333333;
-  text-align: center;
+button {
+  margin-top: 40rpx;
+  margin-bottom: 40rpx;
+  width: 250px;
+  padding: 2px;
+  background-color: #a2e494;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
 </style>

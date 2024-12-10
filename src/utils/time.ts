@@ -7,21 +7,15 @@
 export function timestampToTime(timestamp: number, format: string = 'yyyy-MM-DD HH:mm'): string {
     const date = new Date(timestamp);
 
-    const options: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    };
-
-    const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
-    const [month, day, year, hour, minute, second] = formattedDate.split(/\/|, |:/);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    const second = String(date.getSeconds()).padStart(2, '0');
 
     return format
-        .replace('YYYY', year)
+        .replace('yyyy', year.toString())
         .replace('MM', month)
         .replace('DD', day)
         .replace('HH', hour)

@@ -1,22 +1,22 @@
 <script setup lang="ts">
 import type {Activity} from "@/api/activity/activity-interface";
-import {timestampToTime} from "@/utils/time"
+import {timestampToTime} from "@/utils/time.ts";
 
 const {activity} = defineProps<{activity:Activity}>()
 const time = timestampToTime(activity.start)
 
-const navigateToDetails = () => {
-  uni.setStorageSync('activity',activity);
+const coverUrl = activity.cover == "" ? '/static/logo.png': activity.cover
+
+const navigateToDetails = (id:string) => {
   uni.navigateTo({
-    url: `/pages/activity/details`
-  })
-}
+    url: `/pages/activity/details?id=${id}`,
+  })}
 </script>
 
 <template>
-<view class="box" @click="navigateToDetails">
+<view class="box" @click="navigateToDetails(activity.id)" >
   <view class="cover">
-    <image :src="activity.cover" alt=""/>
+    <image :src="coverUrl" alt=""/>
   </view>
   <view class="activity-information">
     <view class="activity-title">
@@ -43,6 +43,7 @@ const navigateToDetails = () => {
   padding: 40rpx;
   box-shadow: 0 10rpx 20rpx rgba(0, 0, 0, 0.2);
   z-index: 1;
+
   opacity: 0.8;
   margin-top: 40rpx;
   display: flex;
@@ -59,11 +60,25 @@ const navigateToDetails = () => {
   border-radius: 40rpx;
   z-index: 2;
   opacity: 0.95;
-  background-color: #d3ede8;
-  box-shadow: 0 5rpx 10rpx rgba(0, 0, 0, 0.2);
   padding: 20rpx;
 }
 .activity-title{
-  font-size: 40rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+.cover{
+  width: calc(40% - 40rpx);
+  height: 100%;
+  border-radius: 40rpx;
+  overflow: hidden;
+  margin-right: 40rpx;
+  z-index: 3;
+}
+
+.cover image{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 </style>
