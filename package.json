@@ -53,7 +53,8 @@
     "@dcloudio/uni-ui": "^1.5.7",
     "vue": "^3.4.21",
     "vue-i18n": "^9.1.9",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "vuex": "^4.1.0"
   },
   "devDependencies": {
     "@dcloudio/types": "^3.4.8",

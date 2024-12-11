@@ -1,9 +1,18 @@
 /**
+ * 发送验证码
+ */
+export interface SendVerifyCode {
+    authType: string // 默认为"phone"
+    authId: string
+    type: number //0是注册，1是登录
+}
+
+/**
  * 注册接口
  */
 export interface signUpData {
-    authid: string
-    authType: string
+    authid: string //电话号码
+    authType: string //默认为"phone"
     verifyCode: string
     password: string
     name: string

@@ -53,7 +53,26 @@
       "style": {
         "navigationBarTitleText": "",
         "enablePullDownRefresh": false,
-        "navigationBarBackgroundColor": "#f9f9fa"
+        "navigationBarBackgroundColor": "#13714a"
+      }
+    }
+    ,
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": false,
+        "navigationBarBackgroundColor": "#13714a"
+      }
+    },
+    {
+      "path": "pages/login/sign-up",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": false,
+        "navigationBarBackgroundColor": "#13714a"
       }
     }
   ],
