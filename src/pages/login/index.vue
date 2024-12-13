@@ -1,12 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import Layout from "@/components/Layout.vue";
-
+import {sendVerifyCode,signIn} from "@/api/user/user";
+import type{signInData,SignInResponse} from "@/api/user/user-interface";
 // 登录相关的表单数据
 const phone = ref('');
 const password = ref('');
 const code = ref('');
-const loginMethodIndex = ref(0); // 0: 密码登录, 1: 验证码登录
+const loginMethods = ref(['验证码登录','密码登录' ]);
+
+// 当前选中的登录方式索引
+const loginMethodIndex = ref(0);
+
+// 修改登录方式的事件处理函数
+const onLoginMethodChange = (event: Event) => {
+  const picker = event.target as HTMLInputElement;
+  loginMethodIndex.value = Number(picker.value);
+};
 
 // 按钮状态
 const isSendingCode = ref(false);  // 发送验证码按钮状态
@@ -28,19 +38,37 @@ const sendVerificationCode = () => {
     return;
   }
 
-  // TODO: 调用接口发送验证码
-
-  // 启动倒计时
-  isSendingCode.value = true;
-  let timer = setInterval(() => {
-    if (countdown.value <= 0) {
-      clearInterval(timer);
-      isSendingCode.value = false;
-      countdown.value = 60;
-    } else {
-      countdown.value--;
+  //调用接口发送验证码
+  async function handleSendVerifyCode() {
+    try {
+      const response = await sendVerifyCode({
+        authId: phone.value,
+        authType: 'phone',
+        type: 1,
+      });
+      console.log('发送验证码响应:', response);
+      if (response.code === 0) {
+        // 显示发送成功消息
+        await uni.showToast({title: '发送成功', icon: 'success'});
+        // 启动倒计时
+        isSendingCode.value = true;
+        let timer = setInterval(() => {
+          if (countdown.value <= 0) {
+            clearInterval(timer);
+            isSendingCode.value = false;
+            countdown.value = 60;
+          } else {
+            countdown.value--;
+          }
+        }, 1000);
+      } else {
+        await uni.showToast({title: '发送失败', icon: 'error'});
+      }
+    } catch (error) {
+      console.error('发送验证码时发生错误:', error);
     }
-  }, 1000);
+  }
+  handleSendVerifyCode()
 };
 
 // 登录逻辑
@@ -53,7 +81,7 @@ const login = () => {
     return;
   }
 
-  if (loginMethodIndex.value === 1 && !code.value) {
+  if (loginMethodIndex.value === 0 && !code.value) {
     uni.showToast({
       title: '请输入验证码',
       icon: 'none',
@@ -61,7 +89,7 @@ const login = () => {
     return;
   }
 
-  if (loginMethodIndex.value === 0 && !password.value) {
+  if (loginMethodIndex.value === 1 && !password.value) {
     uni.showToast({
       title: '请输入密码',
       icon: 'none',
@@ -69,28 +97,53 @@ const login = () => {
     return;
   }
 
-  // TODO: 调用接口进行登录
-  const result = { success: true, token: 'some-token' }; // 模拟接口返回值
-
-  if (result.success) {
-    // 将 token 存储到本地
-    uni.setStorageSync('userInfo', { phone: phone.value, token: result.token });
-
-    uni.showToast({
-      title: '登录成功',
-      icon: 'success',
-    });
-
-    // TODO: 登录成功后的跳转逻辑
-    uni.redirectTo({
-      url: '/pages/home/home' // 假设登录成功后跳转到首页
-    });
-  } else {
-    uni.showToast({
-      title: '登录失败',
-      icon: 'none',
-    });
+  //调用接口进行登录
+  console.log('登录参数:', phone.value, loginMethodIndex.value === 0 ? code.value : password.value);
+  handleLogin()
+  async function handleLogin(){
+    let data:signInData={
+      authId: phone.value,
+      authType: 'phone'
+    }
+    try {
+      if(loginMethodIndex.value === 1)
+      {
+        data ={
+          authId: phone.value,
+          authType: 'phone',
+          password: password.value
+        }
+      }else if(loginMethodIndex.value === 0)
+      {
+        data = {
+          authId: phone.value,
+          authType: 'phone',
+          verifyCode: code.value
+        }
+      }
+      console.log(data)
+      const res = await signIn(data)
+      if(res){
+        console.log("登录返回值：",res)
+        uni.setStorageSync('UserInfo',res)
+        await uni.showToast({title:"登录成功",icon:"success"})
+        await uni.switchTab({url: '/pages/news/index'})
+      }else{
+        await uni.showToast({title:"登录失败",icon:"error"})
+      }
+    }
+    catch (e) {
+      await uni.showToast({title:"登录失败",icon:"error"})
+      console.log(e)
+    }
   }
+
+};
+
+const jump2register = () => {
+  uni.navigateTo({
+    url: '/pages/login/sign-up',
+  });
 };
 </script>
 
@@ -104,41 +157,34 @@ const login = () => {
 
       <view class="item">
         <text>选择登录方式</text>
-        <picker :value="loginMethodIndex" :range="['密码登录', '验证码登录']" @change="e => loginMethodIndex.value = e.detail.value">
-          <view>{{ loginMethodIndex.value === 0 ? '密码登录' : '验证码登录' }}</view>
+        <picker
+            mode="selector"
+            :value="loginMethodIndex"
+            :range="loginMethods"
+            @change="onLoginMethodChange"
+        >
+          <view>{{ loginMethodIndex === 0 ? '验证码登录' : '密码登录' }}</view>
         </picker>
       </view>
 
-      <view class="toggle-login-method">
-        <div class="login-method-option" :class="{ active: loginMethodIndex.value === 0 }" @click="loginMethodIndex.value = 0">
-          密码登录
-        </div>
-        <div class="login-method-option" :class="{ active: loginMethodIndex.value === 1 }" @click="loginMethodIndex.value = 1">
-          验证码登录
-        </div>
-      </view>
-
-      <transition name="slide">
-        <view class="item" v-if="loginMethodIndex.value === 0">
-          <text>密码</text>
-          <input v-model="password" type="password" placeholder="请输入密码" />
-        </view>
-      </transition>
-
-      <transition name="slide">
-        <view class="item" v-if="loginMethodIndex.value === 1">
+      <view class="verifyCode" v-if="loginMethodIndex === 0">
+        <view class="item">
           <text>验证码</text>
           <input v-model="code" type="text" placeholder="请输入验证码" />
-          <button
-              :disabled="isSendingCode"
-              @click="sendVerificationCode"
-          >
-            {{ isSendingCode ? `${countdown.value}秒后重新发送` : '发送验证码' }}
-          </button>
         </view>
-      </transition>
+        <button :disabled="isSendingCode" @click="sendVerificationCode">{{ isSendingCode ? `${countdown}s` : '发送验证码' }}</button>
+      </view>
+
+      <view class="item" v-if="loginMethodIndex === 1">
+        <text>密码</text>
+        <input v-model="password" type="password" placeholder="请输入密码" />
+      </view>
 
       <button @click="login">登录</button>
+      <view class="register">
+        <text>没有账号？</text>
+        <text @click="jump2register">注册</text>
+      </view>
     </view>
   </Layout>
 </template>
@@ -203,31 +249,16 @@ text {
   font-weight: bold;
 }
 
-.toggle-login-method {
+.verifyCode {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 20px;
 }
 
-.login-method-option {
-  padding: 10px;
-  background-color: #f5f5f5;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.login-method-option.active {
-  background-color: #a2e494;
-  color: white;
-}
-
-/* 滑动效果 */
-.slide-enter-active, .slide-leave-active {
-  transition: transform 0.3s ease;
-}
-
-.slide-enter, .slide-leave-to {
-  transform: translateX(100%);
+.register > text {
+  font-weight: normal;
+  color: grey;
 }
 </style>

@@ -63,7 +63,7 @@
         "navigationBarTitleText": "登录",
         "navigationBarTextStyle": "white",
         "enablePullDownRefresh": false,
-        "navigationBarBackgroundColor": "#13714a"
+        "navigationBarBackgroundColor": "#13714a",
       }
     },
     {

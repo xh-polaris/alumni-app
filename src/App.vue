@@ -7,7 +7,7 @@ onLaunch(() => {
     // 如果没有用户信息，跳转到注册页面
     uni.showToast({title: '请先登录', icon: 'none'})
     uni.navigateTo({
-      url: '/pages/login/sign-up'
+      url: '/pages/login/index'
     });
   }
 });

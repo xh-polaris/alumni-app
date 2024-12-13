@@ -28,7 +28,7 @@ export interface SignUpResponse {
  * 登录接口
  */
 export interface signInData {
-    authid: string
+    authId: string
     authType: string
     verifyCode?: string
     password?: string

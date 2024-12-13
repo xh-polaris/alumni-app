@@ -6,25 +6,24 @@
         <input v-model="name" type="text" placeholder="请输入姓名" />
       </view>
       <view class="item">
+        <text>密码</text>
+        <input v-model="password" type="password" placeholder="请输入密码" />
+      </view>
+      <view class="item">
         <text>手机号</text>
         <input v-model="phone" type="text" placeholder="请输入手机号" />
       </view>
       <view class="verifyCode">
-        <view class="item" style="width: 60%">
+        <view class="item" >
           <text>验证码</text>
           <input v-model="code" type="text" placeholder="请输入验证码" />
         </view>
         <button
-            style="width: 35%;font-size: 24rpx;line-height: 40px"
             :disabled="isSendingCode"
             @click="sendVerificationCode"
         >
           {{ isSendingCode ? `${countdown}秒后重新发送` : '发送验证码' }}
         </button>
-      </view>
-      <view class="item">
-        <text>密码</text>
-        <input v-model="password" type="password" placeholder="请输入密码" />
       </view>
       <button
           :disabled="!name || !phone || !code || !password"
@@ -39,7 +38,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import {signUp,sendVerifyCode} from "@/api/user/user";
-import {SendVerifyCode,SignUpResponse,signUpData} from "@/api/user/user-interface";
+import type {SendVerifyCode,SignUpResponse,signUpData} from "@/api/user/user-interface";
 import Layout from "@/components/Layout.vue";
 
 // 注册相关的表单数据
@@ -93,7 +92,7 @@ const sendVerificationCode = () => {
           }
         }, 1000);
       } else {
-        await uni.showToast({title: '发送失败', icon: 'error'});
+        await uni.showToast({title: response.msg, icon: 'error'});
       }
     } catch (error) {
       console.error('发送验证码时发生错误:', error);
@@ -145,7 +144,7 @@ const register = () => {
         await uni.showToast({title: '注册成功', icon: 'success'});
         uni.setStorageSync('userInfo', response)
         await uni.navigateTo({
-          url: '/pages/news/index',
+          url: '/pages/login/index',
         });
       }else{
         await uni.showToast({title: '注册失败', icon: 'error'});
@@ -218,9 +217,9 @@ text {
 }
 .verifyCode {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  width: calc(80% + 20px);
+  width: 100%;
 }
 </style>
