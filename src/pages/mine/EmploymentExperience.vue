@@ -1,158 +1,115 @@
-<!-- src/components/EmploymentExperience.vue -->
 <template>
-  <view class="employment-experience">
-    <view class="title">工作经历</view>
-    <view v-for="(employment, index) in employments" :key="index" class="experience-block">
-      <view class="info-item">
-        <view class="info-title">工作单位</view>
-        <input v-model="employment.organization"/>
-      </view>
-      <view class="info-item">
-        <view class="info-title">职位</view>
-        <input v-model="employment.position" />
-      </view>
-      <view class="info-item">
-        <view class="info-title">行业</view>
-        <input v-model="employment.industry" />
-      </view>
-      <view class="info-item">
-        <view class="info-title">入职年份</view>
-        <picker :range="yearsArray" :value="selectedYear" @change="(e) => onYearChange(e, index, 'entry')">
-          <view>{{ employment.entry || '请选择' }}</view>
-        </picker>
-      </view>
-      <view class="info-item">
-        <view class="info-title">离职年份</view>
-        <picker :range="yearsArray" :value="selectedYear" @change="(e) => onYearChange(e, index, 'departure')">
-          <view>{{ employment.departure === 0 ? '至今' : employment.departure }}</view>
-        </picker>
-      </view>
-      <view class="buttons">
-        <button @click="removeEmployment(index)">删除</button>
-        <button @click="saveEmployment(index)">保存</button>
+  <view class="surface-card">
+    <view class="section-title">工作经历</view>
+    <view v-if="localValue.length" class="experience-list">
+      <view class="experience-item" v-for="(item, index) in localValue" :key="index">
+        <view class="form-row">
+          <text class="form-label">工作单位</text>
+          <input class="input-field" v-model="item.organization" placeholder="公司名称" @input="sync" />
+        </view>
+        <view class="form-row">
+          <text class="form-label">职位</text>
+          <input class="input-field" v-model="item.position" placeholder="职位名称" @input="sync" />
+        </view>
+        <view class="form-row">
+          <text class="form-label">行业</text>
+          <input class="input-field" v-model="item.industry" placeholder="所在行业" @input="sync" />
+        </view>
+        <view class="inline-fields">
+          <view class="form-row">
+            <text class="form-label">入职年份</text>
+            <input class="input-field" type="number" v-model.number="item.entry" placeholder="2020" @input="sync" />
+          </view>
+          <view class="form-row">
+            <text class="form-label">离职年份</text>
+            <input class="input-field" type="number" v-model.number="item.departure" placeholder="0 表示至今" @input="sync" />
+          </view>
+        </view>
+        <view class="remove-link" @click="removeEmployment(index)">删除此经历</view>
       </view>
     </view>
-    <button @click="addEmployment">添加工作经历</button>
+    <view class="empty-state" v-else>尚未添加工作经历</view>
+    <button class="secondary-button" @click="addEmployment">添加工作经历</button>
+    <button class="primary-button" :disabled="!localValue.length" @click="emitSave">
+      保存工作经历
+    </button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { defineComponent, ref } from 'vue';
-import type { Employment } from '@/api/user/user-interface';
+import { ref, watch } from "vue";
+import type { Employment } from "@/api/user/user-interface";
 
-const employments = ref<Employment[]>([]);
+const props = defineProps<{
+  modelValue: Employment[];
+}>();
+const emit = defineEmits<{
+  (e: "update:modelValue", value: Employment[]): void;
+  (e: "save", value: Employment[]): void;
+}>();
+
+const localValue = ref<Employment[]>([]);
+
+watch(
+  () => props.modelValue,
+  (val) => {
+    localValue.value = val ? JSON.parse(JSON.stringify(val)) : [];
+  },
+  { immediate: true, deep: true }
+);
+
+const sync = () => {
+  emit("update:modelValue", JSON.parse(JSON.stringify(localValue.value)));
+};
 
 const addEmployment = () => {
-  employments.value.push({ organization: '', position: '', industry: '', entry: 0, departure: 0 });
+  localValue.value.push({
+    organization: "",
+    position: "",
+    industry: "",
+    entry: new Date().getFullYear(),
+    departure: 0,
+  });
+  sync();
 };
 
 const removeEmployment = (index: number) => {
-  employments.value.splice(index, 1);
+  localValue.value.splice(index, 1);
+  sync();
 };
 
-const currentYear = new Date().getFullYear();
-const yearsArray = ref(['至今', ...Array.from({ length: 60 }, (_, i) => `${currentYear - i}`)]);
-
-// 默认选中最新年份
-const selectedYear = ref(0);
-
-// 处理年份选择变化
-const onYearChange = (event: any, index: number, type: 'entry' | 'departure') => {
-  const selectedValue = event.detail.value;
-  const selectedYear = yearsArray.value[selectedValue];
-
-  if (type === 'departure') {
-    employments.value[index].departure = selectedYear === '至今' ? 0 : parseInt(selectedYear); // 0 表示至今
-  } else {
-    employments.value[index].entry = parseInt(selectedYear);
-  }
-};
-
-
-const saveEmployment = (index: number) => {
-  const employment = employments.value[index];
-  // TODO: 调用接口保存工作经历
+const emitSave = () => {
+  emit("save", localValue.value);
 };
 </script>
 
 <style scoped>
-.title{
-  font-size: 40rpx;
-  font-weight: bold;
-  margin-bottom: 20rpx;
-}
-
-.employment-experience{
+.experience-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 100vw;
+  gap: 28rpx;
+  margin-bottom: 24rpx;
 }
 
-.experience-block {
-  margin-bottom: 30rpx;
-  width: 80vw;
+.experience-item {
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: var(--alumni-surface-muted);
+}
+
+.inline-fields {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #fff;
-  border-radius: 40rpx;
-  padding: 30rpx;
-  z-index: 1;
-  box-shadow: 0 0 10rpx #ccc;
-  opacity: 0.8;
-}
-.info-item {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 20rpx;
+  gap: 16rpx;
 }
 
-.info-title {
-  font-size: 30rpx;
-  font-weight: bold;
+.inline-fields .form-row {
+  flex: 1;
 }
 
-input {
-  width: 40%;
+.remove-link {
   text-align: right;
-}
-
-.buttons {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: 80%;
-}
-.buttons button {
-  padding: 6rpx;
-  background-color: #a2e494;
-  color: white;
-  border-radius: 40rpx;
-  text-align: center;
-  cursor: pointer;
-  font-size: 16px; /* 增大按钮文字大小 */
-  width: 40%;
-  margin-left: 0;
-  margin-right: 0;
-}
-
-button {
-  padding: 8rpx;
-  background-color: #a2e494;
-  color: white;
-  border-radius: 20rpx;
-  text-align: center;
-  cursor: pointer;
-  font-size: 18px; /* 增大按钮文字大小 */
-  width: 60%;
-  margin-left: 0;
-  margin-right: 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  color: #ff6347;
+  font-size: 24rpx;
 }
 </style>
+

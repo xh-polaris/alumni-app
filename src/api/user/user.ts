@@ -1,8 +1,22 @@
-import type {SendVerifyCode ,signUpData, SignUpResponse, signInData, SignInResponse, UpdateInfo, UpdateInfoResponse, UpdateEmployment, UpdateEmploymentResponse, UpdateEducation, UpdateEducationResponse, UserInfo } from '@/api/user/user-interface';
+import type {
+    SendVerifyCode,
+    SendVerifyCodeResponse,
+    signUpData,
+    SignUpResponse,
+    signInData,
+    SignInResponse,
+    UpdateInfo,
+    UpdateInfoResponse,
+    UpdateEmployment,
+    UpdateEmploymentResponse,
+    UpdateEducation,
+    UpdateEducationResponse,
+    UserInfo
+} from '@/api/user/user-interface';
 import { httpRequest } from '@/api/request';
 // 发送验证码
-export const sendVerifyCode = (data: SendVerifyCode): Promise<any> => {
-    return httpRequest<any>({
+export const sendVerifyCode = (data: SendVerifyCode): Promise<SendVerifyCodeResponse> => {
+    return httpRequest<SendVerifyCodeResponse>({
         url: '/sts/send_verify_code',
         method: 'POST',
         data: data

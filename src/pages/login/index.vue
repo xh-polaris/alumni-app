@@ -1,264 +1,234 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, onUnmounted, ref } from "vue";
 import Layout from "@/components/Layout.vue";
-import {sendVerifyCode,signIn} from "@/api/user/user";
-import type{signInData,SignInResponse} from "@/api/user/user-interface";
-// 登录相关的表单数据
-const phone = ref('');
-const password = ref('');
-const code = ref('');
-const loginMethods = ref(['验证码登录','密码登录' ]);
+import { sendVerifyCode, signIn } from "@/api/user/user";
+import type { signInData } from "@/api/user/user-interface";
+import { STORAGE_KEYS } from "@/constants/storage";
 
-// 当前选中的登录方式索引
-const loginMethodIndex = ref(0);
+const phone = ref("");
+const password = ref("");
+const code = ref("");
+const loginMethod = ref<"code" | "password">("code");
 
-// 修改登录方式的事件处理函数
-const onLoginMethodChange = (event: Event) => {
-  const picker = event.target as HTMLInputElement;
-  loginMethodIndex.value = Number(picker.value);
-};
+const isSendingCode = ref(false);
+const countdown = ref(60);
+const isSubmitting = ref(false);
+let timer: ReturnType<typeof setInterval> | null = null;
 
-// 按钮状态
-const isSendingCode = ref(false);  // 发送验证码按钮状态
-const countdown = ref(60);         // 验证码倒计时
+const validatePhone = (value: string) => /^1[3-9]\d{9}$/.test(value);
 
-// 检验手机号是否有效
-const validatePhone = (phone: string) => {
-  const phoneRegex = /^1[3-9]\d{9}$/;  // 简单的手机号格式验证
-  return phoneRegex.test(phone);
-};
+const canSendCode = computed(() => validatePhone(phone.value) && !isSendingCode.value);
+const canSubmit = computed(() => {
+  if (!validatePhone(phone.value)) return false;
+  return loginMethod.value === "code" ? !!code.value : !!password.value;
+});
 
-// 发送验证码
-const sendVerificationCode = () => {
-  if (!validatePhone(phone.value)) {
-    uni.showToast({
-      title: '手机号格式不正确',
-      icon: 'none',
-    });
-    return;
-  }
-
-  //调用接口发送验证码
-  async function handleSendVerifyCode() {
-    try {
-      const response = await sendVerifyCode({
-        authId: phone.value,
-        authType: 'phone',
-        type: 1,
-      });
-      console.log('发送验证码响应:', response);
-      if (response.code === 0) {
-        // 显示发送成功消息
-        await uni.showToast({title: '发送成功', icon: 'success'});
-        // 启动倒计时
-        isSendingCode.value = true;
-        let timer = setInterval(() => {
-          if (countdown.value <= 0) {
-            clearInterval(timer);
-            isSendingCode.value = false;
-            countdown.value = 60;
-          } else {
-            countdown.value--;
-          }
-        }, 1000);
-      } else {
-        await uni.showToast({title: '发送失败', icon: 'error'});
-      }
-    } catch (error) {
-      console.error('发送验证码时发生错误:', error);
+const startCountdown = () => {
+  isSendingCode.value = true;
+  countdown.value = 60;
+  timer = setInterval(() => {
+    if (countdown.value <= 1) {
+      stopCountdown();
+      return;
     }
-  }
-  handleSendVerifyCode()
+    countdown.value -= 1;
+  }, 1000) as unknown as number;
 };
 
-// 登录逻辑
-const login = () => {
+const stopCountdown = () => {
+  isSendingCode.value = false;
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+};
+
+onUnmounted(() => {
+  stopCountdown();
+});
+
+const sendVerificationCode = async () => {
   if (!validatePhone(phone.value)) {
-    uni.showToast({
-      title: '手机号格式不正确',
-      icon: 'none',
-    });
+    uni.showToast({ title: "请输入有效手机号", icon: "none" });
     return;
   }
-
-  if (loginMethodIndex.value === 0 && !code.value) {
-    uni.showToast({
-      title: '请输入验证码',
-      icon: 'none',
-    });
+  if (isSendingCode.value) {
     return;
   }
-
-  if (loginMethodIndex.value === 1 && !password.value) {
-    uni.showToast({
-      title: '请输入密码',
-      icon: 'none',
-    });
-    return;
-  }
-
-  //调用接口进行登录
-  console.log('登录参数:', phone.value, loginMethodIndex.value === 0 ? code.value : password.value);
-  handleLogin()
-  async function handleLogin(){
-    let data:signInData={
+  try {
+    const response = await sendVerifyCode({
       authId: phone.value,
-      authType: 'phone'
+      authType: "phone",
+      type: 1,
+    });
+    if (response.code === 0) {
+      uni.showToast({ title: "验证码已发送", icon: "success" });
+      startCountdown();
+    } else {
+      uni.showToast({ title: response.msg || "发送失败", icon: "none" });
     }
-    try {
-      if(loginMethodIndex.value === 1)
-      {
-        data ={
-          authId: phone.value,
-          authType: 'phone',
-          password: password.value
-        }
-      }else if(loginMethodIndex.value === 0)
-      {
-        data = {
-          authId: phone.value,
-          authType: 'phone',
-          verifyCode: code.value
-        }
-      }
-      console.log(data)
-      const res = await signIn(data)
-      if(res){
-        console.log("登录返回值：",res)
-        uni.setStorageSync('UserInfo',res)
-        await uni.showToast({title:"登录成功",icon:"success"})
-        await uni.switchTab({url: '/pages/news/index'})
-      }else{
-        await uni.showToast({title:"登录失败",icon:"error"})
-      }
-    }
-    catch (e) {
-      await uni.showToast({title:"登录失败",icon:"error"})
-      console.log(e)
-    }
+  } catch (error) {
+    uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
+  }
+};
+
+const login = async () => {
+  if (!canSubmit.value || isSubmitting.value) {
+    return;
+  }
+  const payload: signInData = {
+    authId: phone.value,
+    authType: "phone",
+  };
+  if (loginMethod.value === "password") {
+    payload.password = password.value;
+  } else {
+    payload.verifyCode = code.value;
   }
 
+  isSubmitting.value = true;
+  try {
+    const res = await signIn(payload);
+    uni.setStorageSync(STORAGE_KEYS.USER, res);
+    await uni.showToast({ title: "登录成功", icon: "success" });
+    await uni.switchTab({ url: "/pages/news/index" });
+  } catch (error: any) {
+    uni.showToast({ title: error?.msg || "登录失败，请稍后重试", icon: "none" });
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 const jump2register = () => {
-  uni.navigateTo({
-    url: '/pages/login/sign-up',
-  });
+  uni.navigateTo({ url: "/pages/login/sign-up" });
 };
 </script>
 
 <template>
   <Layout>
-    <view class="signIn">
-      <view class="item">
-        <text>手机号</text>
-        <input v-model="phone" type="text" placeholder="请输入手机号" />
-      </view>
+    <view class="page-shell">
+      <view class="page-shell__content">
+        <view class="surface-card auth-card">
+          <view class="section-title">欢迎回来</view>
+          <view class="section-subtitle">使用绑定手机号登录账号</view>
 
-      <view class="item">
-        <text>选择登录方式</text>
-        <picker
-            mode="selector"
-            :value="loginMethodIndex"
-            :range="loginMethods"
-            @change="onLoginMethodChange"
-        >
-          <view>{{ loginMethodIndex === 0 ? '验证码登录' : '密码登录' }}</view>
-        </picker>
-      </view>
+          <view class="segment">
+            <view
+              v-for="method in ['code','password']"
+              :key="method"
+              class="segment__item"
+              :class="{ 'segment__item--active': loginMethod === method }"
+              @click="loginMethod = method as 'code' | 'password'"
+            >
+              {{ method === 'code' ? '验证码登录' : '密码登录' }}
+            </view>
+          </view>
 
-      <view class="verifyCode" v-if="loginMethodIndex === 0">
-        <view class="item">
-          <text>验证码</text>
-          <input v-model="code" type="text" placeholder="请输入验证码" />
+          <view class="form-row">
+            <text class="form-label">手机号</text>
+            <input
+              class="input-field"
+              v-model="phone"
+              type="text"
+              placeholder="请输入手机号"
+              maxlength="11"
+            />
+          </view>
+
+          <view class="form-row" v-if="loginMethod === 'code'">
+            <text class="form-label">验证码</text>
+            <view class="inline-input">
+              <input
+                class="input-field"
+                v-model="code"
+                type="text"
+                placeholder="请输入验证码"
+                maxlength="6"
+              />
+              <button class="ghost-button" :disabled="!canSendCode" @click="sendVerificationCode">
+                {{ isSendingCode ? `${countdown}s` : "发送验证码" }}
+              </button>
+            </view>
+          </view>
+
+          <view class="form-row" v-else>
+            <text class="form-label">密码</text>
+            <input
+              class="input-field"
+              v-model="password"
+              type="password"
+              placeholder="请输入密码"
+            />
+          </view>
+
+          <button class="primary-button" :disabled="!canSubmit || isSubmitting" @click="login">
+            {{ isSubmitting ? "登录中..." : "登录" }}
+          </button>
+          <view class="auth-footer">
+            <text class="muted-text">还没有账号？</text>
+            <text class="link" @click="jump2register">立即注册</text>
+          </view>
         </view>
-        <button :disabled="isSendingCode" @click="sendVerificationCode">{{ isSendingCode ? `${countdown}s` : '发送验证码' }}</button>
-      </view>
-
-      <view class="item" v-if="loginMethodIndex === 1">
-        <text>密码</text>
-        <input v-model="password" type="password" placeholder="请输入密码" />
-      </view>
-
-      <button @click="login">登录</button>
-      <view class="register">
-        <text>没有账号？</text>
-        <text @click="jump2register">注册</text>
       </view>
     </view>
   </Layout>
 </template>
 
 <style scoped>
-.signIn {
+.auth-card {
+  margin-top: 80rpx;
+}
+
+.segment {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 680px;
-  min-height: 500px;
-  width: 80%;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-  overflow-y: auto;
-  overflow-x: hidden;
-  z-index: 1;
-  opacity: 0.8;
-  margin-top: auto;
+  padding: 8rpx;
+  border-radius: 999rpx;
+  background-color: var(--alumni-surface-muted);
+  margin-bottom: 36rpx;
 }
 
-.item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 80%;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 10px;
-  background: #f5f5f5;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-}
-
-input {
-  width: 60%;
-  height: 40px;
-  text-align: right;
-}
-
-button {
-  padding: 8px;
-  background-color: #a2e494;
-  color: white;
-  border-radius: 20px;
+.segment__item {
+  flex: 1;
   text-align: center;
-  cursor: pointer;
-  font-size: 18px;
-  width: 80%;
-  margin-top: 10px;
+  padding: 18rpx 0;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  color: var(--alumni-muted);
 }
 
-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+.segment__item--active {
+  background: #fff;
+  box-shadow: 0 10rpx 20rpx rgba(6, 24, 17, 0.08);
+  color: var(--alumni-primary);
 }
 
-text {
-  font-weight: bold;
-}
-
-.verifyCode {
+.inline-input {
   display: flex;
-  flex-direction: column;
+  gap: 18rpx;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
 }
 
-.register > text {
-  font-weight: normal;
-  color: grey;
+.ghost-button {
+  padding: 18rpx 32rpx;
+  border-radius: var(--alumni-radius-sm);
+  border: 1px solid var(--alumni-border);
+  color: var(--alumni-primary);
+  font-size: 26rpx;
+  background: transparent;
+}
+
+.ghost-button:disabled {
+  opacity: 0.4;
+}
+
+.auth-footer {
+  margin-top: 24rpx;
+  display: flex;
+  justify-content: center;
+  gap: 10rpx;
+}
+
+.link {
+  color: var(--alumni-primary);
 }
 </style>

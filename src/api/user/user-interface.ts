@@ -7,6 +7,11 @@ export interface SendVerifyCode {
     type: number //0是注册，1是登录
 }
 
+export interface SendVerifyCodeResponse {
+    code: number
+    msg: string
+}
+
 /**
  * 注册接口
  */

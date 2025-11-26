@@ -1,65 +1,241 @@
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import { onLoad } from "@dcloudio/uni-app";
 import Layout from "@/components/Layout.vue";
-import MetaInfo from "@/pages/activity/details/MetaInfo.vue";
 import Header from "@/pages/activity/details/Header.vue";
-import {getActivityDetails} from "@/api/activity/activity";
-import type { Activity } from "@/api/activity/activity-interface";
-import {ref} from "vue";
-import {onLoad} from "@dcloudio/uni-app";
+import MetaInfo from "@/pages/activity/details/MetaInfo.vue";
+import { getActivityDetails, registerUser } from "@/api/activity/activity";
+import type { Activity, registerData } from "@/api/activity/activity-interface";
 
-
-const activityDetails = ref<Activity>;
+const activityDetails = ref<Activity | null>(null);
 const isLoading = ref(true);
+const fetchError = ref("");
+const showRegisterModal = ref(false);
+const registrants = ref<Array<{ name: string; phone: string }>>([]);
+const isSubmitting = ref(false);
+const participantCount = ref(0);
 
-onLoad((option) => {
-  isLoading.value = true;
-  console.log(option.id);
+const resetRegistrants = () => {
+  registrants.value = [{ name: "", phone: "" }];
+};
 
-  const res = getActivityDetails({ id: option.id });
-  res.then((res) => {
-    activityDetails.value = res.activity;
-    isLoading.value = false; // 数据加载完成
-    console.log(activityDetails.value);
-  });
+const validatePhone = (value: string) => /^1[3-9]\d{9}$/.test(value);
+
+const isRegistrationOpen = computed(() => {
+  if (!activityDetails.value) return false;
+  const now = Date.now();
+  const withinWindow =
+    now >= activityDetails.value.registerStart &&
+    now <= activityDetails.value.registerEnd;
+  return withinWindow && activityDetails.value.status < activityDetails.value.limit;
 });
 
+const registrationHint = computed(() => {
+  if (!activityDetails.value) return "";
+  if (activityDetails.value.status >= activityDetails.value.limit) {
+    return "当前名额已满";
+  }
+  const now = Date.now();
+  if (now < activityDetails.value.registerStart) {
+    return "报名尚未开始";
+  }
+  if (now > activityDetails.value.registerEnd) {
+    return "报名已截止";
+  }
+  return "";
+});
+
+const fetchDetails = async (id: string) => {
+  isLoading.value = true;
+  fetchError.value = "";
+  try {
+    const res = await getActivityDetails({ id });
+    activityDetails.value = res.activity;
+    participantCount.value = res.numbers;
+  } catch (error) {
+    fetchError.value = "活动详情加载失败，请稍后重试";
+    uni.showToast({ title: fetchError.value, icon: "none" });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onLoad((options) => {
+  if (options?.id) {
+    fetchDetails(options.id);
+  } else {
+    fetchError.value = "未找到活动信息";
+    isLoading.value = false;
+  }
+});
+
+const handleRegister = () => {
+  if (!activityDetails.value) return;
+  resetRegistrants();
+  showRegisterModal.value = true;
+};
+
+const addRegistrant = () => {
+  registrants.value.push({ name: "", phone: "" });
+};
+
+const removeRegistrant = (index: number) => {
+  if (registrants.value.length === 1) {
+    registrants.value[0] = { name: "", phone: "" };
+    return;
+  }
+  registrants.value.splice(index, 1);
+};
+
+const submitRegister = async () => {
+  if (!activityDetails.value) return;
+  if (registrants.value.some(item => !item.name.trim() || !validatePhone(item.phone))) {
+    uni.showToast({ title: "请填写完整且正确的姓名与手机号", icon: "none" });
+    return;
+  }
+  const payload: registerData = {
+    activityId: activityDetails.value.id,
+    items: registrants.value.map(item => ({
+      name: item.name.trim(),
+      phone: item.phone.trim(),
+    })),
+  };
+  isSubmitting.value = true;
+  try {
+    const res = await registerUser(payload);
+    if (res.code === 0) {
+      uni.showToast({ title: "报名成功", icon: "success" });
+      showRegisterModal.value = false;
+      fetchDetails(activityDetails.value.id);
+    } else {
+      uni.showToast({ title: res.msg || "报名失败", icon: "none" });
+    }
+  } catch (error) {
+    uni.showToast({ title: "报名失败，请稍后重试", icon: "none" });
+  } finally {
+    isSubmitting.value = false;
+  }
+};
 </script>
 
 <template>
-  <layout>
-    <view class="activity-details" v-if="!isLoading">
-      <Header :activity="activityDetails.value"></Header>
-      <MetaInfo :activity="activityDetails.value"></MetaInfo>
-      <button @click="">报名</button>
+  <Layout>
+    <view class="page-shell">
+      <view class="page-shell__content">
+        <view v-if="isLoading" class="empty-state">正在加载活动详情...</view>
+        <view v-else-if="fetchError" class="empty-state">
+          {{ fetchError }}
+        </view>
+        <view v-else-if="activityDetails" class="detail-wrapper">
+          <view class="surface-card">
+            <Header :activity="activityDetails" />
+            <MetaInfo :activity="activityDetails" :numbers="participantCount" />
+          </view>
+          <button
+            class="primary-button"
+            :disabled="!isRegistrationOpen"
+            @click="handleRegister"
+          >
+            {{ isRegistrationOpen ? "立即报名" : registrationHint || "报名不可用" }}
+          </button>
+        </view>
+      </view>
     </view>
-  </layout>
+
+    <view class="register-modal" v-if="showRegisterModal">
+      <view class="register-modal__backdrop" @click="showRegisterModal = false" />
+      <view class="register-modal__content surface-card">
+        <view class="modal-header">
+          <view class="section-title">报名信息</view>
+          <text class="close" @click="showRegisterModal = false">关闭</text>
+        </view>
+
+        <view
+          class="registrant-form"
+          v-for="(item, index) in registrants"
+          :key="index"
+        >
+          <view class="form-row">
+            <text class="form-label">姓名</text>
+            <input
+              class="input-field"
+              placeholder="请输入姓名"
+              v-model="item.name"
+            />
+          </view>
+          <view class="form-row">
+            <text class="form-label">手机号</text>
+            <input
+              class="input-field"
+              placeholder="请输入手机号"
+              type="number"
+              maxlength="11"
+              v-model="item.phone"
+            />
+          </view>
+          <view class="remove-row" v-if="registrants.length > 1" @click="removeRegistrant(index)">
+            移除该成员
+          </view>
+          <view class="divider" />
+        </view>
+
+        <button class="secondary-button" @click="addRegistrant">添加更多成员</button>
+        <button class="primary-button" :disabled="isSubmitting" @click="submitRegister">
+          {{ isSubmitting ? "提交中..." : "确认报名" }}
+        </button>
+      </view>
+    </view>
+  </Layout>
 </template>
 
 <style scoped>
-.activity-details {
+.detail-wrapper {
   display: flex;
   flex-direction: column;
-  height: 70%;
-  width: 100%;
-  background: #ffffff;
-  border-radius: 50rpx 50rpx 0 0 ;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-  overflow-y: auto;
-  overflow-x: hidden ;
-  z-index: 1;
-  opacity: 0.85;
-  margin-top: auto;
-}
-button {
-  margin-top: 40rpx;
-  margin-bottom: 40rpx;
-  width: 250px;
-  padding: 2px;
-  background-color: #a2e494;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  gap: 32rpx;
 }
 
+.register-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.register-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.register-modal__content {
+  position: relative;
+  width: 100%;
+  border-radius: 32rpx 32rpx 0 0;
+  max-height: 85vh;
+  overflow-y: auto;
+  z-index: 2;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close {
+  color: var(--alumni-primary);
+}
+
+.registrant-form :deep(.divider:last-child) {
+  display: none;
+}
+
+.remove-row {
+  color: #ff6347;
+  font-size: 26rpx;
+  text-align: right;
+}
 </style>

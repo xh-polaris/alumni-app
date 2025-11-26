@@ -1,25 +1,16 @@
 <script setup lang="ts">
-
 import Layout from "@/components/Layout.vue";
 </script>
 
 <template>
-<layout>
-  <view class="temp">
-    <text>暂无资讯</text>
-  </view>
-</layout>
+  <Layout>
+    <view class="page-shell">
+      <view class="page-shell__content">
+        <view class="surface-card">
+          <view class="section-title">资讯中心</view>
+          <view class="empty-state">暂无资讯，敬请期待</view>
+        </view>
+      </view>
+    </view>
+  </Layout>
 </template>
-
-<style scoped>
-  .temp{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  .temp text{
-    color: #999;
-    font-size: 60rpx;
-  }
-</style>

@@ -1,289 +1,200 @@
 <template>
-  <view class="page">
-    <VerificationCode>
-      <view class="sign-in-details">
-        <view class="button" @click="fetchCheckInDetails">
-          更新签到情况
-        </view>
-        <view class="button" @click="openModal">
-          添加用户
-        </view>
-        <view v-if="isModalVisible" class="modal-overlay">
-          <view class="modal-content">
-            <text>添加用户</text>
-            <input
-                v-model="newUserName"
-                placeholder="请输入姓名"
-                class="add-user-input"
-            />
-            <view class="modal-buttons">
-              <button class="modal-button" @click="handleRegister">确定</button>
-              <button class="modal-button" @click="closeModal">取消</button>
+  <VerificationCode>
+    <Layout>
+      <view class="page-shell">
+        <view class="page-shell__content">
+          <view class="surface-card">
+            <view class="section-title">签到概览</view>
+            <view class="pill">签到 {{ details?.checked || 0 }}/{{ details?.total || 0 }}</view>
+            <view class="actions">
+              <button class="primary-button" @click="openModal">添加用户</button>
+              <button class="secondary-button" @click="fetchDetails">刷新数据</button>
             </view>
+            <input class="input-field" v-model="searchQuery" placeholder="搜索姓名" />
           </view>
-        </view>
-        <input v-model="searchQuery" placeholder="搜索用户" class="search-input" />
-        <view class="search-input">签到情况：{{ checkInDetails.checked }}/{{ checkInDetails.total }}</view>
-        <view v-if="checkInDetails" class="details-container">
-          <view class="registers-list">
-            <view v-for="register in filteredRegisters" :key="register.id" class="register-item">
-              <view class="register-name">
-                {{ register.name }}
-              </view>
-              <view class="register-status">
-                {{ register.checkIn ? '已签到' : '未签到' }}
+
+          <view class="surface-card">
+            <view class="list" v-if="filteredRegisters.length">
+              <view
+                class="register-item"
+                v-for="register in filteredRegisters"
+                :key="register.id"
+              >
+                <view>
+                  <view class="name">{{ register.name }}</view>
+                  <view class="muted-text">{{ register.phone }}</view>
+                </view>
+                <view class="status" :class="{ checked: register.checkIn }">
+                  {{ register.checkIn ? "已签到" : "未签到" }}
+                </view>
               </view>
             </view>
+            <view class="empty-state" v-else>暂无匹配的签到记录</view>
           </view>
         </view>
       </view>
-    </VerificationCode>
-    <image class="background-image" src="/static/logo.png"/>
-  </view>
+    </Layout>
+
+    <view class="register-modal" v-if="isModalVisible">
+      <view class="register-modal__backdrop" @click="closeModal" />
+      <view class="register-modal__content surface-card">
+        <view class="section-title">添加报名用户</view>
+        <view class="form-row">
+          <text class="form-label">姓名</text>
+          <input class="input-field" v-model="newUserName" placeholder="请输入姓名" />
+        </view>
+        <view class="form-row">
+          <text class="form-label">手机号</text>
+          <input class="input-field" v-model="newUserPhone" maxlength="11" placeholder="请输入手机号" />
+        </view>
+        <view class="modal-actions">
+          <button class="secondary-button" @click="closeModal">取消</button>
+          <button class="primary-button" @click="handleRegister">确定</button>
+        </view>
+      </view>
+    </view>
+  </VerificationCode>
 </template>
 
 <script setup lang="ts">
-import { ref, computed,watch } from "vue";
-import { registerUser } from "@/api/activity/activity";
-import type { registerData } from "@/api/activity/activity-interface";
+import { computed, onMounted, ref } from "vue";
 import VerificationCode from "@/components/VerificationCode.vue";
+import Layout from "@/components/Layout.vue";
 import { getCheckInDetails } from "@/api/check-in";
-import type { checkInDetails } from "@/api/check-in";
+import { registerUser } from "@/api/activity/activity";
+import type { checkInDetails as CheckInDetails } from "@/api/check-in";
+import type { registerData } from "@/api/activity/activity-interface";
 
 const activityId = "674b0c0cc9fc4f1f67c398e4";
-const checkInDetails = ref<checkInDetails | null>(null);
-const searchQuery = ref('');
-const isModalVisible = ref(false); // 控制modal的显示与隐藏
+const details = ref<CheckInDetails | null>(null);
+const searchQuery = ref("");
+const isModalVisible = ref(false);
 const newUserName = ref("");
+const newUserPhone = ref("");
 
-// 打开modal
+const fetchDetails = async () => {
+  try {
+    details.value = await getCheckInDetails(activityId);
+  } catch (error) {
+    uni.showToast({ title: "获取签到信息失败", icon: "none" });
+  }
+};
+
+onMounted(() => {
+  fetchDetails();
+});
+
 const openModal = () => {
+  newUserName.value = "";
+  newUserPhone.value = "";
   isModalVisible.value = true;
 };
 
-// 关闭modal
 const closeModal = () => {
   isModalVisible.value = false;
 };
 
-// 添加用户逻辑
 const handleRegister = async () => {
-  if (!newUserName.value) {
-    await uni.showToast({ title: "请输入姓名", icon: "error" });
+  if (!newUserName.value.trim() || !/^1[3-9]\d{9}$/.test(newUserPhone.value)) {
+    uni.showToast({ title: "请输入有效的姓名和手机号", icon: "none" });
     return;
   }
-  const data: registerData = {
-    activityId: activityId,
-    items: [{ name: newUserName.value, phone: "-1" }],
+  if (details.value?.registers.some(item => item.name === newUserName.value.trim())) {
+    uni.showToast({ title: "用户已存在", icon: "none" });
+    return;
+  }
+  const payload: registerData = {
+    activityId,
+    items: [{ name: newUserName.value.trim(), phone: newUserPhone.value.trim() }],
   };
-
-  //检查新添加的用户是否已存在
-  const details: checkInDetails = await getCheckInDetails(activityId);
-  const user = details.registers.find(register => register.name === newUserName.value);
-  if (user) {
-    await uni.showToast({ title: "用户已存在", icon: "error" });
-    return;
-  }
-
   try {
-    const result = await registerUser(data);
-    if (result.code === 0) {
-      await uni.showToast({ title: "添加成功" });
-      newUserName.value = ""; // 清空输入框
-      await fetchCheckInDetails(); // 刷新签到详情
-      closeModal(); // 关闭modal
+    const res = await registerUser(payload);
+    if (res.code === 0) {
+      uni.showToast({ title: "添加成功", icon: "success" });
+      closeModal();
+      fetchDetails();
+    } else {
+      uni.showToast({ title: res.msg || "添加失败", icon: "none" });
     }
   } catch (error) {
-    console.error("添加失败", error);
-    await uni.showToast({ title: "添加失败，请重试" });
+    uni.showToast({ title: "添加失败，请稍后重试", icon: "none" });
   }
 };
-
-
-const fetchCheckInDetails = async () => {
-  try {
-    checkInDetails.value = await getCheckInDetails(activityId);
-    console.log('签到详情:', checkInDetails.value);
-  } catch (error) {
-    console.error('获取签到详情失败', error);
-  }
-};
-
-watch(checkInDetails, (newVal) => {
-  if (newVal) {
-    console.log('签到详情更新:', newVal);
-  }
-});
-
-const sortedRegisters = computed(() => {
-  if (!checkInDetails.value) return [];
-  return [...checkInDetails.value.registers].sort((a, b) => {
-    // 未签到的用户排在前面
-    return a.checkIn === b.checkIn ? 0 : a.checkIn ? 1 : -1;
-  });
-});
 
 const filteredRegisters = computed(() => {
-  if (!searchQuery.value) return sortedRegisters.value;
-  return sortedRegisters.value.filter(register =>
-    register.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  if (!details.value) return [];
+  const keyword = searchQuery.value.trim().toLowerCase();
+  return details.value.registers
+    .slice()
+    .sort((a, b) => (a.checkIn === b.checkIn ? 0 : a.checkIn ? 1 : -1))
+    .filter((item) => (keyword ? item.name.toLowerCase().includes(keyword) : true));
 });
-
 </script>
 
 <style scoped>
-.page {
-  position: relative;
-  overflow: auto;
-  overflow-x: hidden;
-  height: 100vh;
-  background-color: #f5f5fa;
-  padding: 10px;
+.actions {
+  display: flex;
+  gap: 16rpx;
+  margin: 24rpx 0;
+}
+
+.list {
   display: flex;
   flex-direction: column;
-}
-
-.button {
-  padding: 10px;
-  width: 250px;
-  background-color: #a2e494;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  margin-bottom: 15px;
-  text-align: center;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.button:hover {
-  background-color: darkgreen;
-}
-
-.search-input {
-  width: 250px;
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  background-color: #fafafa;
-  opacity: 0.9;
-  z-index: 1;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.details-container {
-  margin-top: -5px;
-  max-height: 80vh; /* 设置最大高度 */
-  overflow-y: auto; /* 内容溢出时滚动 */
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  border-radius: 20px;
-  padding: 10px;
-  z-index: 1;
-  opacity: 0.8;
-  margin-left: auto;
-  margin-right: auto;
-  width: 250px;
-  text-align: center;
-}
-
-
-.registers-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
+  gap: 18rpx;
 }
 
 .register-item {
-  margin-left: 10%;
-  width: 60%;
   display: flex;
   justify-content: space-between;
-  font-size: 18px; /* 增大每个注册用户的文字大小 */
-  margin-bottom: 10px;
+  align-items: center;
+  padding: 18rpx 0;
+  border-bottom: 1px solid var(--alumni-border);
 }
 
-.sign-in-details {
-  display: flex;
-  flex-direction: column;
-  margin: 10px;
+.register-item:last-child {
+  border-bottom: none;
 }
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 850px;
-  overflow: auto;
-  width : 100vw;
-  background: rgba(0, 0, 0, 0.4);
+
+.name {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.status {
+  font-size: 24rpx;
+  color: var(--alumni-muted);
+}
+
+.status.checked {
+  color: var(--alumni-primary);
+}
+
+.register-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  z-index:10;
-  backdrop-filter: blur(2px);
 }
 
-.modal-content {
-  margin-top: -200px;
-  background: white;
-  padding: 20px;
-  border-radius: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 80vw;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.add-user-input {
-  margin-top: 10px;
-  padding: 10px;
-  width: calc(80% - 20px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  font-size: 18px; /* 增大输入框文字大小 */
-}
-
-.modal-buttons {
-  margin-top: 10px;
-  width: 80%;
-  display: flex;
-  justify-content: space-between;
-}
-
-.modal-button {
-  padding: 5px;
-  background-color: #a2e494;
-  color: white;
-  border-radius: 20px;
-  text-align: center;
-  cursor: pointer;
-  font-size: 18px; /* 增大按钮文字大小 */
-  width: 40%;
-  margin-left: 0;
-  margin-right: 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.modal-button:hover {
-  background-color: darkgreen;
-}
-
-.background-image {
+.register-modal__backdrop {
   position: absolute;
-  top: 100px;
-  right: -200px;
-  width: 500px;
-  height: 510px;
-  object-fit: contain;
-  opacity: 0.3;
-  z-index: 0;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.register-modal__content {
+  position: relative;
+  width: 90%;
+  max-width: 600rpx;
+  z-index: 2;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
 }
 </style>

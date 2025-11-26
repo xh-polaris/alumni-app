@@ -1,84 +1,91 @@
 <script setup lang="ts">
-import type {Activity} from "@/api/activity/activity-interface";
-import {timestampToTime} from "@/utils/time.ts";
+import { computed } from "vue";
+import type { Activity } from "@/api/activity/activity-interface";
+import { timestampToTime } from "@/utils/time";
 
-const {activity} = defineProps<{activity:Activity}>()
-const time = timestampToTime(activity.start)
+const { activity } = defineProps<{ activity: Activity }>();
 
-const coverUrl = activity.cover == "" ? '/static/logo.png': activity.cover
+const coverUrl = computed(() => (activity.cover ? activity.cover : "/static/logo.png"));
+const time = computed(() => timestampToTime(activity.start, "MM月DD日 HH:mm"));
+const isFull = computed(() => activity.status >= activity.limit);
 
-const navigateToDetails = (id:string) => {
+const navigateToDetails = (id: string) => {
   uni.navigateTo({
     url: `/pages/activity/details?id=${id}`,
-  })}
+  });
+};
 </script>
 
 <template>
-<view class="box" @click="navigateToDetails(activity.id)" >
-  <view class="cover">
-    <image :src="coverUrl" alt=""/>
+  <view class="activity-card surface-card" @click="navigateToDetails(activity.id)">
+    <image class="activity-card__cover" :src="coverUrl" mode="aspectFill" />
+    <view class="activity-card__body">
+      <view class="activity-card__title">{{ activity.name }}</view>
+      <view class="activity-card__meta">
+        <text>{{ time }}</text>
+        <text>·</text>
+        <text>{{ activity.location }}</text>
+      </view>
+      <view class="activity-card__footer">
+        <view class="pill" :class="{ 'pill--danger': isFull }">
+          {{ isFull ? "报名已满" : "报名中" }} · {{ activity.status }}/{{ activity.limit }}
+        </view>
+        <text class="activity-card__hint">主办方：{{ activity.sponsor }}</text>
+      </view>
+    </view>
   </view>
-  <view class="activity-information">
-    <view class="activity-title">
-      <text>{{activity.name}}</text>
-    </view>
-    <view class="activity-time">
-      <text>{{time}}</text>
-    </view>
-    <view class="register-status">
-      <text>已报名</text>
-      <text>{{activity.status}}/{{activity.limit}}</text>
-    </view>
-  </view>
-</view>
 </template>
 
 <style scoped>
-.box{
-  position: relative;
-  width: 600rpx;
-  height: 200rpx;
-  border-radius: 40rpx;
-  background-color: #fff;
-  padding: 40rpx;
-  box-shadow: 0 10rpx 20rpx rgba(0, 0, 0, 0.2);
-  z-index: 1;
-
-  opacity: 0.8;
-  margin-top: 40rpx;
+.activity-card {
   display: flex;
+  gap: 28rpx;
+  align-items: center;
+  margin-bottom: 28rpx;
+  padding: 32rpx 28rpx;
 }
-.activity-information{
-  width: calc(60% - 40rpx);
-  height: calc(100% - 80rpx);
-  position: absolute;
-  bottom: 20rpx;
-  right: 2.5%;
+
+.activity-card__cover {
+  width: 170rpx;
+  height: 170rpx;
+  border-radius: 28rpx;
+}
+
+.activity-card__body {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  border-radius: 40rpx;
-  z-index: 2;
-  opacity: 0.95;
-  padding: 20rpx;
-}
-.activity-title{
-  font-size: 34rpx;
-  font-weight: 700;
-}
-.cover{
-  width: calc(40% - 40rpx);
-  height: 100%;
-  border-radius: 40rpx;
-  overflow: hidden;
-  margin-right: 40rpx;
-  z-index: 3;
+  gap: 14rpx;
 }
 
-.cover image{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+.activity-card__title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--alumni-text);
+}
+
+.activity-card__meta {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+  color: var(--alumni-muted);
+  font-size: 24rpx;
+}
+
+.activity-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.activity-card__hint {
+  font-size: 24rpx;
+  color: var(--alumni-muted);
+}
+
+.pill--danger {
+  background: rgba(255, 99, 71, 0.12);
+  color: #ff6347;
 }
 </style>

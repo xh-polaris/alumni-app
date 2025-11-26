@@ -1,190 +1,160 @@
-<!-- src/pages/Mine.vue -->
 <template>
   <Layout>
-    <view class="page">
-      <view class="user-info">
-        <view class="info-item">
-          <view class="info-title">头像</view>
-          <image class="avatar" src="@/static/logo.png"/>
+    <view class="page-shell">
+      <view class="page-shell__content">
+        <view class="surface-card">
+          <view class="section-title">基础信息</view>
+          <view class="form-row">
+            <text class="form-label">姓名</text>
+            <input class="input-field" v-model="profile.name" placeholder="请输入姓名" />
+          </view>
+          <view class="form-row">
+            <text class="form-label">性别</text>
+            <picker mode="selector" :range="genders" :value="genderIndex" @change="onGenderChange">
+              <view class="picker-field">{{ genders[genderIndex] }}</view>
+            </picker>
+          </view>
+          <view class="form-row">
+            <text class="form-label">生日</text>
+            <picker mode="date" :value="birthdayDisplay" @change="onBirthdayPicked">
+              <view class="picker-field">{{ birthdayDisplay || "请选择日期" }}</view>
+            </picker>
+          </view>
+          <view class="form-row">
+            <text class="form-label">手机号</text>
+            <input class="input-field" v-model="profile.phone" disabled />
+          </view>
+          <view class="form-row">
+            <text class="form-label">微信号</text>
+            <input class="input-field" v-model="profile.wxid" placeholder="请输入微信号" />
+          </view>
+          <button class="primary-button" :disabled="savingInfo" @click="saveInfo">
+            {{ savingInfo ? "保存中..." : "保存基础信息" }}
+          </button>
         </view>
-        <view class="info-item">
-          <view class="info-title">姓名</view>
-          <input v-model="userInfo.name"/>
-        </view>
-        <view class="info-item">
-          <view class="uni-title info-title">性别</view>
-          <picker :range="gendersArray" :value="selectedGender" @change="onGenderChange">
-            <view>{{ gendersArray[selectedGender] }}</view>
-          </picker>
-        </view>
-        <view class="info-item">
-          <view class="info-title">生日</view>
-          <picker mode="multiSelector" :range="birthdayOptions" :value="selectedBirthday" @change="onBirthdayChange" @columnchange="onColumnChange">
-            <view>{{ formattedBirthday }}</view>
-          </picker>
-        </view>
-        <view class="info-item">
-          <view class="info-title">手机号</view>
-          <text>{{userInfo.phone}}</text>
-        </view>
-        <view class="info-item">
-          <view class="info-title">微信号</view>
-          <text>{{userInfo.wxid}}</text>
-        </view>
-        <button @click="saveInfo">保存信息</button>
+
+        <EducationExperience
+          title="在沪教育经历"
+          :model-value="shanghaiEducations.value"
+          @update:modelValue="(val) => (shanghaiEducations.value = val)"
+          @save="(list) => saveEducation(1, list)"
+        />
+        <EducationExperience
+          title="家乡教育经历"
+          :model-value="hometownEducations.value"
+          @update:modelValue="(val) => (hometownEducations.value = val)"
+          @save="(list) => saveEducation(0, list)"
+        />
+        <EmploymentExperience
+          :model-value="employmentList.value"
+          @update:modelValue="(val) => (employmentList.value = val)"
+          @save="saveEmployment"
+        />
       </view>
-      <EducationExperience style="z-index: 1;"/>
-      <EmploymentExperience style="z-index: 1"/>
     </view>
   </Layout>
 </template>
 
 <script setup lang="ts">
-import EducationExperience from '@/pages/mine/EducationExperience.vue';
-import EmploymentExperience from '@/pages/mine/EmploymentExperience.vue';
-import {ref,computed} from "vue";
-import type {UpdateInfo} from "@/api/user/user-interface";
-import {updateUserInfo} from "@/api/user/user"
+import { computed, onMounted, reactive, ref } from "vue";
 import Layout from "@/components/Layout.vue";
+import EducationExperience from "@/pages/mine/EducationExperience.vue";
+import EmploymentExperience from "@/pages/mine/EmploymentExperience.vue";
+import {
+  getUserInfo,
+  updateUserInfo,
+  updateEducation,
+  updateEmployment,
+} from "@/api/user/user";
+import type {
+  UpdateInfo,
+  Education,
+  Employment,
+  UserInfo,
+} from "@/api/user/user-interface";
+import { dateToTimestamp, timestampToTime } from "@/utils/time";
 
-
-const gendersArray = ['未选择', '男', '女'];
-const selectedGender = ref(0); // 默认选择'男'
-
-const onGenderChange = (event: any) => {
-  selectedGender.value = event.detail.value; // 更新选中的性别
-};
-
-const userInfo = ref<UpdateInfo>({
-  avatar: '',
-  name: '',
+const genders = ["未选择", "男", "女"];
+const genderIndex = ref(0);
+const profile = reactive<UpdateInfo>({
+  avatar: "",
+  name: "",
   gender: 0,
   birthday: 0,
-  phone: '',
-  wxid: ''
+  phone: "",
+  wxid: "",
+});
+const savingInfo = ref(false);
+const shanghaiEducations = ref<Education[]>([]);
+const hometownEducations = ref<Education[]>([]);
+const employmentList = ref<Employment[]>([]);
+
+const birthdayDisplay = computed(() =>
+  profile.birthday ? timestampToTime(profile.birthday, "yyyy-MM-DD") : ""
+);
+
+const loadProfile = async () => {
+  try {
+    const data: UserInfo = await getUserInfo();
+    Object.assign(profile, {
+      avatar: data.avatar,
+      name: data.name,
+      gender: data.gender,
+      birthday: data.birthday,
+      phone: data.phone,
+      wxid: data.wxid,
+    });
+    genderIndex.value = data.gender ?? 0;
+    shanghaiEducations.value = data.shanghaiEducations || [];
+    hometownEducations.value = data.hometownEducations || [];
+    employmentList.value = data.employments || [];
+  } catch (error) {
+    uni.showToast({ title: "获取用户信息失败", icon: "none" });
+  }
+};
+
+onMounted(() => {
+  loadProfile();
 });
 
-const saveInfo = () => {
-  console.log(userInfo.value);
-  // TODO调用 API 保存用户信息
-  const res = updateUserInfo(userInfo.value);
-  if (res.code === 0) {
-    uni.showToast({ title: '保存成功' });
+const onGenderChange = (event: any) => {
+  genderIndex.value = Number(event.detail.value);
+  profile.gender = genderIndex.value;
+};
+
+const onBirthdayPicked = (event: any) => {
+  if (event?.detail?.value) {
+    profile.birthday = dateToTimestamp(`${event.detail.value} 00:00:00`);
   }
-  else {
-    uni.showToast({ title: '保存失败', icon: 'error' });
+};
+
+const saveInfo = async () => {
+  savingInfo.value = true;
+  try {
+    await updateUserInfo({ ...profile });
+    uni.showToast({ title: "保存成功", icon: "success" });
+  } catch (error) {
+    uni.showToast({ title: "保存失败", icon: "none" });
+  } finally {
+    savingInfo.value = false;
   }
 };
 
-/**
- * @description: 生日选择器
- */
-const currentYear = new Date().getFullYear(); // 获取当前年份
-const years = Array.from({ length: 100 }, (_, i) => `${currentYear - i}`); // 最近100年
-const months = Array.from({ length: 12 }, (_, i) => `${i + 1}`); // 1-12月
-const days = (year: number, month: number) => {
-  // 根据年份和月份计算天数
-  const isLeapYear = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
-  const daysInMonth = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return Array.from({ length: daysInMonth[month - 1] }, (_, i) => `${i + 1}`);
-};
-
-// 响应式数据
-const birthdayOptions = ref([years, months, days(Number(years[0]), 1)]); // 初始选项
-const selectedBirthday = ref([0, 0, 0]); // 初始索引值 [年份, 月份, 日期]
-
-// 计算选中的生日格式化输出
-const formattedBirthday = computed(() => {
-  const [yearIndex, monthIndex, dayIndex] = selectedBirthday.value;
-  const year = years[yearIndex];
-  const month = months[monthIndex];
-  const day = birthdayOptions.value[2][dayIndex];
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-});
-
-// 处理选择变化
-const onBirthdayChange = (event: any) => {
-  selectedBirthday.value = event.detail.value;
-};
-
-// 动态更新天数选项
-const onColumnChange = (event: any) => {
-  const { column, value } = event.detail;
-
-  if (column === 0 || column === 1) {
-    // 年份或月份改变时动态更新天数
-    const year = Number(years[selectedBirthday.value[0]]);
-    const month = Number(months[column === 0 ? selectedBirthday.value[1] : value]);
-    const newDays = days(year, month);
-    birthdayOptions.value[2] = newDays;
-
-    // 如果当前选中的天数超出范围，重置为最后一天
-    if (selectedBirthday.value[2] >= newDays.length) {
-      selectedBirthday.value[2] = newDays.length - 1;
-    }
+const saveEducation = async (type: number, list: Education[]) => {
+  try {
+    await updateEducation({ type, educations: list });
+    uni.showToast({ title: "教育经历已保存", icon: "success" });
+  } catch (error) {
+    uni.showToast({ title: "保存教育经历失败", icon: "none" });
   }
-
-  // 更新当前列的选中值
-  selectedBirthday.value[column] = value;
 };
 
+const saveEmployment = async (list: Employment[]) => {
+  try {
+    await updateEmployment({ employments: list });
+    uni.showToast({ title: "工作经历已保存", icon: "success" });
+  } catch (error) {
+    uni.showToast({ title: "保存工作经历失败", icon: "none" });
+  }
+};
 </script>
-
-<style scoped>
-.page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100vh;
-  width: 100vw;
-}
-.user-info {
-  position: relative;
-  margin-top: 60rpx;
-  margin-bottom: 30rpx;
-  width: calc(80vw - 40rpx);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #fff;
-  border-radius: 40rpx;
-  padding: 50rpx;
-  z-index: 1;
-  box-shadow: 0 0 10rpx #ccc;
-  opacity: 0.8;
-}
-.avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 60rpx;
-}
-.info-item {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 20rpx;
-}
-.info-title {
-  font-size: 30rpx;
-  font-weight: bold;
-}
-input,text {
-  width: 40%;
-  text-align: right;
-}
-button {
-  padding: 8rpx;
-  background-color: #a2e494;
-  color: white;
-  border-radius: 40rpx;
-  text-align: center;
-  cursor: pointer;
-  font-size: 18px; /* 增大按钮文字大小 */
-  width: 40%;
-  margin-left: 0;
-  margin-right: 0;
-}
-</style>

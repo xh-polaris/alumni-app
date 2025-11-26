@@ -1,225 +1,168 @@
 <template>
   <Layout>
-    <view class="signUp">
-      <view class="item">
-        <text>姓名</text>
-        <input v-model="name" type="text" placeholder="请输入姓名" />
-      </view>
-      <view class="item">
-        <text>密码</text>
-        <input v-model="password" type="password" placeholder="请输入密码" />
-      </view>
-      <view class="item">
-        <text>手机号</text>
-        <input v-model="phone" type="text" placeholder="请输入手机号" />
-      </view>
-      <view class="verifyCode">
-        <view class="item" >
-          <text>验证码</text>
-          <input v-model="code" type="text" placeholder="请输入验证码" />
+    <view class="page-shell">
+      <view class="page-shell__content">
+        <view class="surface-card auth-card">
+          <view class="section-title">创建校友账号</view>
+          <view class="section-subtitle">完善信息后即可加入校友社区</view>
+
+          <view class="form-row">
+            <text class="form-label">姓名</text>
+            <input class="input-field" v-model="name" type="text" placeholder="请输入姓名" />
+          </view>
+
+          <view class="form-row">
+            <text class="form-label">手机号</text>
+            <input class="input-field" v-model="phone" type="text" maxlength="11" placeholder="请输入手机号" />
+          </view>
+
+          <view class="form-row">
+            <text class="form-label">验证码</text>
+            <view class="inline-input">
+              <input class="input-field" v-model="code" type="text" maxlength="6" placeholder="请输入验证码" />
+              <button class="ghost-button" :disabled="!canSendCode" @click="sendVerificationCode">
+                {{ isSendingCode ? `${countdown}s` : "发送验证码" }}
+              </button>
+            </view>
+          </view>
+
+          <view class="form-row">
+            <text class="form-label">设置密码</text>
+            <input class="input-field" v-model="password" type="password" placeholder="至少 6 位数字或字母" />
+          </view>
+
+          <button class="primary-button" :disabled="!canSubmit || isSubmitting" @click="register">
+            {{ isSubmitting ? "提交中..." : "完成注册" }}
+          </button>
         </view>
-        <button
-            :disabled="isSendingCode"
-            @click="sendVerificationCode"
-        >
-          {{ isSendingCode ? `${countdown}秒后重新发送` : '发送验证码' }}
-        </button>
       </view>
-      <button
-          :disabled="!name || !phone || !code || !password"
-          @click="register"
-      >
-        注册
-      </button>
     </view>
   </Layout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import {signUp,sendVerifyCode} from "@/api/user/user";
-import type {SendVerifyCode,SignUpResponse,signUpData} from "@/api/user/user-interface";
+import { computed, onUnmounted, ref } from "vue";
 import Layout from "@/components/Layout.vue";
+import { signUp, sendVerifyCode } from "@/api/user/user";
+import type { signUpData } from "@/api/user/user-interface";
+import { STORAGE_KEYS } from "@/constants/storage";
 
-// 注册相关的表单数据
-const name = ref('');
-const phone = ref('');
-const code = ref('');
-const password = ref('');
+const name = ref("");
+const phone = ref("");
+const code = ref("");
+const password = ref("");
 
-// 按钮状态
-const isSendingCode = ref(false);  // 发送验证码按钮状态
-const isDisabled = ref(false);     // 注册按钮禁用状态
-const countdown = ref(60);         // 倒计时
+const isSendingCode = ref(false);
+const countdown = ref(60);
+const isSubmitting = ref(false);
+let timer: ReturnType<typeof setInterval> | null = null;
 
-// 检验手机号是否有效
-const validatePhone = (phone: string) => {
-  const phoneRegex = /^1[3-9]\d{9}$/;  // 简单的手机号格式验证
-  return phoneRegex.test(phone);
+const validatePhone = (value: string) => /^1[3-9]\d{9}$/.test(value);
+
+const canSendCode = computed(() => validatePhone(phone.value) && !isSendingCode.value);
+const canSubmit = computed(() => {
+  return (
+    !!name.value.trim() &&
+    validatePhone(phone.value) &&
+    code.value.length === 6 &&
+    password.value.length >= 6
+  );
+});
+
+const startCountdown = () => {
+  isSendingCode.value = true;
+  countdown.value = 60;
+  timer = setInterval(() => {
+    if (countdown.value <= 1) {
+      stopCountdown();
+      return;
+    }
+    countdown.value -= 1;
+  }, 1000);
 };
 
-// 发送验证码
-const sendVerificationCode = () => {
+const stopCountdown = () => {
+  isSendingCode.value = false;
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+};
+
+onUnmounted(() => {
+  stopCountdown();
+});
+
+const sendVerificationCode = async () => {
   if (!validatePhone(phone.value)) {
-    uni.showToast({
-      title: '手机号格式不正确',
-      icon: 'none',
-    });
+    uni.showToast({ title: "请输入有效手机号", icon: "none" });
     return;
   }
-
-  // TODO: 调用接口发送验证码
-  async function handleSendVerifyCode() {
-    try {
-      const response = await sendVerifyCode({
-        authId: phone.value,
-        authType: 'phone',
-        type: 0,
-      });
-      console.log('发送验证码响应:', response);
-      if (response.code === 0) {
-        // 显示发送成功消息
-        await uni.showToast({title: '发送成功', icon: 'success'});
-        // 启动倒计时
-        isSendingCode.value = true;
-        let timer = setInterval(() => {
-          if (countdown.value <= 0) {
-            clearInterval(timer);
-            isSendingCode.value = false;
-            countdown.value = 60;
-          } else {
-            countdown.value--;
-          }
-        }, 1000);
-      } else {
-        await uni.showToast({title: response.msg, icon: 'error'});
-      }
-    } catch (error) {
-      console.error('发送验证码时发生错误:', error);
+  try {
+    const response = await sendVerifyCode({
+      authId: phone.value,
+      authType: "phone",
+      type: 0,
+    });
+    if (response.code === 0) {
+      uni.showToast({ title: "验证码已发送", icon: "success" });
+      startCountdown();
+    } else {
+      uni.showToast({ title: response.msg || "发送失败", icon: "none" });
     }
+  } catch (error) {
+    uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
   }
-  handleSendVerifyCode()
 };
 
-// 注册逻辑
-const register = () => {
-  if (!validatePhone(phone.value)) {
-    uni.showToast({
-      title: '手机号格式不正确',
-      icon: 'none',
-    });
+const register = async () => {
+  if (!canSubmit.value || isSubmitting.value) {
     return;
   }
+  isSubmitting.value = true;
+  const payload: signUpData = {
+    authType: "phone",
+    authid: phone.value,
+    name: name.value.trim(),
+    password: password.value,
+    verifyCode: code.value,
+  };
 
-  if (!code.value) {
-    uni.showToast({
-      title: '请输入验证码',
-      icon: 'none',
-    });
-    return;
+  try {
+    const response = await signUp(payload);
+    uni.setStorageSync(STORAGE_KEYS.USER, response);
+    console.log(uni.getStorageSync(STORAGE_KEYS.USER))
+    await uni.showToast({ title: "注册成功", icon: "success" });
+    await uni.switchTab({ url: "/pages/news/index" });
+  } catch (error: any) {
+    uni.showToast({ title: error?.msg || "注册失败，请稍后重试", icon: "none" });
+  } finally {
+    isSubmitting.value = false;
   }
-
-  if (!password.value) {
-    uni.showToast({
-      title: '请输入密码',
-      icon: 'none',
-    });
-    return;
-  }
-
-  async function handleSignUp() {
-    const data: signUpData = {
-      authType: 'phone',
-      authid: phone.value,
-      name: name.value,
-      password: password.value,
-      verifyCode: code.value,
-    };
-
-    try {
-      const response:SignUpResponse = await signUp(data);
-      console.log('注册响应:', response);
-      if (response) {
-        // 注册成功，进行后续操作，例如跳转到登录页面
-        await uni.showToast({title: '注册成功', icon: 'success'});
-        uni.setStorageSync('userInfo', response)
-        await uni.navigateTo({
-          url: '/pages/login/index',
-        });
-      }else{
-        await uni.showToast({title: '注册失败', icon: 'error'});
-
-      }
-    }
-    catch (error) {
-      console.error('注册时发生错误:', error);
-    }
-  }
-  handleSignUp()
 };
-
 </script>
 
 <style scoped>
-.signUp {
+.auth-card {
+  margin-top: 60rpx;
+}
+
+.inline-input {
   display: flex;
-  flex-direction: column;
+  gap: 18rpx;
   align-items: center;
-  justify-content: center;
-  height: 680px;
-  min-height: 500px;
-  width: 80%;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-  overflow-y: auto;
-  overflow-x: hidden;
-  z-index: 1;
-  opacity: 0.8;
-  margin-top: auto;
 }
-.item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 80%;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 10px;
-  background: #f5f5f5;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+
+.ghost-button {
+  padding: 18rpx 32rpx;
+  border-radius: var(--alumni-radius-sm);
+  border: 1px solid var(--alumni-border);
+  color: var(--alumni-primary);
+  font-size: 26rpx;
+  background: transparent;
 }
-input {
-  width: 60%;
-  height: 40px;
-  text-align: right;
-}
-button {
-  padding: 10px 6px;
-  background-color: #a2e494;
-  color: white;
-  border-radius: 10px;
-  text-align: center;
-  cursor: pointer;
-  font-size: 18px;
-  width: 60%;
-  margin-left: auto;
-}
-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-  font-size: 5px;
-}
-text {
-  font-weight: bold;
-}
-.verifyCode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+
+.ghost-button:disabled {
+  opacity: 0.4;
 }
 </style>
