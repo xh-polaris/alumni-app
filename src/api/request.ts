@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "@/constants/storage";
 const BASE_URL = "https://api.xhpolaris.com/alumni"
 
 interface RequestParams {
@@ -13,7 +14,7 @@ export const httpRequest = <T>(params: RequestParams): Promise<T> => {
             url: `${BASE_URL}${params.url}`,
             method: params.method,
             data: params.data || {},
-            header: params.headers || { "Content-Type": "application/json" },
+            header: params.headers || { "Content-Type": "application/json",'Authorization': uni.getStorageSync(STORAGE_KEYS.USER).accessToken },
             success: (res) => {
                 if (res.statusCode === 200) {
                     resolve(res.data as T);

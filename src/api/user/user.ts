@@ -14,6 +14,7 @@ import type {
     UserInfo
 } from '@/api/user/user-interface';
 import { httpRequest } from '@/api/request';
+import { STORAGE_KEYS } from '@/constants/storage';
 // 发送验证码
 export const sendVerifyCode = (data: SendVerifyCode): Promise<SendVerifyCodeResponse> => {
     return httpRequest<SendVerifyCodeResponse>({
@@ -46,7 +47,10 @@ export const updateUserInfo = (data: UpdateInfo): Promise<UpdateInfoResponse> =>
     return httpRequest<UpdateInfoResponse>({
         url: '/user/update_info',
         method: 'POST',
-        data: data
+        data: data,
+        headers: {
+            'Authorization': uni.getStorageSync(STORAGE_KEYS.USER).accessToken
+        }
     });
 };
 
@@ -55,7 +59,10 @@ export const updateEmployment = (data: UpdateEmployment): Promise<UpdateEmployme
     return httpRequest<UpdateEmploymentResponse>({
         url: '/user/update_employment',
         method: 'POST',
-        data: data
+        data: data,
+        headers: {
+            'Authorization': uni.getStorageSync(STORAGE_KEYS.USER).accessToken
+        }
     });
 };
 
@@ -64,6 +71,9 @@ export const updateEducation = (data: UpdateEducation): Promise<UpdateEducationR
     return httpRequest<UpdateEducationResponse>({
         url: '/user/update_edu',
         method: 'POST',
+        headers: {
+                    'Authorization': uni.getStorageSync(STORAGE_KEYS.USER).accessToken
+                },
         data: data
     });
 };
@@ -72,6 +82,9 @@ export const updateEducation = (data: UpdateEducation): Promise<UpdateEducationR
 export const getUserInfo = (): Promise<UserInfo> => {
     return httpRequest<UserInfo>({
         url: '/user/info',
-        method: 'GET'
+        method: 'GET',
+        headers: {
+                    'Authorization': uni.getStorageSync(STORAGE_KEYS.USER).accessToken
+                }
     });
 };

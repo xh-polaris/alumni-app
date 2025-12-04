@@ -1,5 +1,18 @@
 <script setup lang="ts">
 import Layout from "@/components/Layout.vue";
+import { STORAGE_KEYS } from "@/constants/storage";
+import { onShow } from "@dcloudio/uni-app";
+const ensureAuth = () => {
+  const userInfo = uni.getStorageSync(STORAGE_KEYS.USER);
+  if (!userInfo) {
+    uni.showToast({ title: "请先登录", icon: "none" });
+    uni.reLaunch({ url: "/pages/login/index" });
+  }
+};
+
+onShow(() => {
+  ensureAuth();
+});
 </script>
 
 <template>

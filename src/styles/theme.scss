@@ -29,8 +29,7 @@ $alumni-shadow: 0 20rpx 50rpx rgba(6, 24, 17, 0.08);
 .page-shell {
   min-height: 100vh;
   box-sizing: border-box;
-  padding: 60rpx 34rpx 140rpx;
-  background: linear-gradient(165deg, #f0f5f2 0%, #f5f7fa 50%, #eef4f0 100%);
+  padding: 30rpx 14rpx 40rpx;
 }
 
 .page-shell__content {
@@ -45,7 +44,16 @@ $alumni-shadow: 0 20rpx 50rpx rgba(6, 24, 17, 0.08);
   background: $alumni-surface;
   border-radius: $alumni-radius-lg;
   box-shadow: $alumni-shadow;
-  padding: 48rpx 42rpx;
+  margin-bottom: 36rpx;
+    padding: 48rpx 42rpx;
+  backdrop-filter: blur(6rpx);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.surface-card-padding {
+  background: $alumni-surface;
+  border-radius: $alumni-radius-lg;
+  box-shadow: $alumni-shadow;
   margin-bottom: 36rpx;
   backdrop-filter: blur(6rpx);
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -81,7 +89,6 @@ $alumni-shadow: 0 20rpx 50rpx rgba(6, 24, 17, 0.08);
 
 .input-field,
 .picker-field {
-  width: 100%;
   padding: 20rpx 24rpx;
   border-radius: $alumni-radius-sm;
   background: $alumni-surface-muted;
@@ -95,12 +102,12 @@ $alumni-shadow: 0 20rpx 50rpx rgba(6, 24, 17, 0.08);
 }
 
 .primary-button {
-  width: 100%;
-  padding: 24rpx;
+  width: 30%;
+  padding: 14rpx;
   border-radius: 999rpx;
   background: linear-gradient(120deg, #1b8c5c, #13714a);
   color: #fff;
-  font-size: 30rpx;
+  font-size: 22rpx;
   font-weight: 600;
   text-align: center;
   margin-top: 12rpx;
@@ -111,13 +118,13 @@ $alumni-shadow: 0 20rpx 50rpx rgba(6, 24, 17, 0.08);
 }
 
 .secondary-button {
-  width: 100%;
+  width: 40%;
   padding: 22rpx;
   border-radius: 999rpx;
   border: 1px solid $alumni-border;
   background: transparent;
   color: $alumni-primary;
-  font-size: 28rpx;
+  font-size: 22rpx;
   font-weight: 500;
   text-align: center;
 }

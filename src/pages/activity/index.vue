@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
+import { onLoad, onPullDownRefresh, onReachBottom, onUnload } from "@dcloudio/uni-app";
 import Layout from "@/components/Layout.vue";
 import ActivityBox from "@/components/ActivityBox.vue";
 import { getActivityList } from "@/api/activity/activity";
@@ -13,6 +13,7 @@ const hasMore = ref(true);
 const isInitialLoading = ref(true);
 const isLoadingMore = ref(false);
 const errorMessage = ref("");
+const isInvited = ref(false);
 
 const fetchActivities = async (reset = false) => {
   if (reset) {
@@ -52,6 +53,15 @@ const fetchActivities = async (reset = false) => {
   }
 };
 
+onLoad((options)=> {
+  console.log(options);
+  if(options?.role==="invited"){
+    uni.showToast({ title: "欢迎受邀参加活动！", icon: "none" });
+    isInvited.value=true;
+    uni.hideTabBar();
+  }
+})
+
 onMounted(() => {
   fetchActivities(true);
 });
@@ -66,6 +76,12 @@ onReachBottom(() => {
     fetchActivities();
   }
 });
+
+onUnload(()=>{
+  if(isInvited.value){
+    uni.showTabBar();
+  }
+})
 </script>
 
 <template>

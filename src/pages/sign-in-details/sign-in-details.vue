@@ -64,8 +64,10 @@ import { getCheckInDetails } from "@/api/check-in";
 import { registerUser } from "@/api/activity/activity";
 import type { checkInDetails as CheckInDetails } from "@/api/check-in";
 import type { registerData } from "@/api/activity/activity-interface";
+import { onLoad } from "@dcloudio/uni-app";
 
-const activityId = "674b0c0cc9fc4f1f67c398e4";
+
+const activityId = ref("");
 const details = ref<CheckInDetails | null>(null);
 const searchQuery = ref("");
 const isModalVisible = ref(false);
@@ -74,11 +76,18 @@ const newUserPhone = ref("");
 
 const fetchDetails = async () => {
   try {
-    details.value = await getCheckInDetails(activityId);
+    details.value = await getCheckInDetails(activityId.value);
   } catch (error) {
     uni.showToast({ title: "获取签到信息失败", icon: "none" });
   }
 };
+
+onLoad((options) => {
+  console.log(options);
+  if (options?.activityId) {
+    activityId.value = options.activityId;
+  }})
+  fetchDetails()
 
 onMounted(() => {
   fetchDetails();
@@ -104,7 +113,7 @@ const handleRegister = async () => {
     return;
   }
   const payload: registerData = {
-    activityId,
+    activityId: activityId.value,
     items: [{ name: newUserName.value.trim(), phone: newUserPhone.value.trim() }],
   };
   try {

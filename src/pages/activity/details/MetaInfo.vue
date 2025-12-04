@@ -1,28 +1,33 @@
 <template>
   <view class="meta-grid" v-if="activity">
-    <view class="meta-card">
-      <text class="meta-label">活动地点</text>
+    <view class="meta-card span-2">
+      <text class="form-label ml-8 ">主办方</text>
+      <text class="meta-value">{{ activity.sponsor }}</text>
+    </view>
+    <view class="meta-card span-2">
+      <text class="form-label ml-8 ">活动地点</text>
       <text class="meta-value">{{ activity.location }}</text>
     </view>
-    <view class="meta-card">
+    <!-- <view class="meta-card">
       <text class="meta-label">报名情况</text>
-      <text class="meta-value">{{ activity.status }}/{{ activity.limit }}</text>
-      <text class="meta-foot">已确认 {{ confirmedCount }} 人</text>
+      <text class="meta-value">{{ activity.limit === -1 ? "" : activity.status + '/' + activity.limit }}</text>
+      <text v-if="activity.limit !== -1" class="meta-foot">已确认 {{ confirmedCount }} 人</text>
+      <text v-else class="meta-foot">报名中</text>
     </view>
     <view class="meta-card">
       <text class="meta-label">联系方式</text>
       <text class="meta-value">{{ activity.contact }}</text>
-    </view>
-    <view class="meta-card">
-      <text class="meta-label">活动时间</text>
+    </view> -->
+    <view class="meta-card span-2">
+      <text class="form-label ml-8 ">活动时间</text>
       <text class="meta-value">{{ startTime }}</text>
     </view>
     <view class="meta-card span-2">
-      <text class="meta-label">报名时间</text>
+      <text class="form-label ml-8 ">报名时间</text>
       <text class="meta-value">{{ registerWindow }}</text>
     </view>
     <view class="meta-card span-2">
-      <text class="meta-label">活动介绍</text>
+      <text class="form-label ml-8 ">活动介绍</text>
       <text class="meta-value">{{ activity.description }}</text>
     </view>
   </view>
@@ -64,10 +69,8 @@ const confirmedCount = computed(() => {
 }
 
 .meta-card {
-  padding: 24rpx;
   border-radius: 24rpx;
   background: var(--alumni-surface-muted);
-  min-height: 120rpx;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
@@ -86,10 +89,15 @@ const confirmedCount = computed(() => {
   font-size: 30rpx;
   color: var(--alumni-text);
   line-height: 1.4;
+  margin-left: 8rpx;
 }
 
 .meta-foot {
   font-size: 22rpx;
   color: var(--alumni-muted);
+}
+
+.ml-8 {
+  margin-left: 8rpx;
 }
 </style>

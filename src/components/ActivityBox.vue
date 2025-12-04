@@ -7,7 +7,12 @@ const { activity } = defineProps<{ activity: Activity }>();
 
 const coverUrl = computed(() => (activity.cover ? activity.cover : "/static/logo.png"));
 const time = computed(() => timestampToTime(activity.start, "MM月DD日 HH:mm"));
-const isFull = computed(() => activity.status >= activity.limit);
+const isFull = computed(() => {
+  if (activity.limit === -1) {
+    return false;
+  }
+  return activity.status >= activity.limit;
+});
 
 const navigateToDetails = (id: string) => {
   uni.navigateTo({
@@ -17,19 +22,21 @@ const navigateToDetails = (id: string) => {
 </script>
 
 <template>
-  <view class="activity-card surface-card" @click="navigateToDetails(activity.id)">
+  <view class="activity-card surface-card-padding" @click="navigateToDetails(activity.id)">
     <image class="activity-card__cover" :src="coverUrl" mode="aspectFill" />
     <view class="activity-card__body">
-      <view class="activity-card__title">{{ activity.name }}</view>
+      <view class="activity-card__title">{{ activity.name.split('\n')[0] }}</view>
+      <view class="activity-card__title">{{ activity.name.split('\n')[1] }}</view>
       <view class="activity-card__meta">
         <text>{{ time }}</text>
-        <text>·</text>
+        <view class="pill" :class="{ 'pill--danger': isFull }">
+          {{ isFull ? "报名已满" : "报名中" }}{{activity.limit === -1 ? "" : activity.status +'/'+ activity.limit }}
+        </view>
+      </view>
+      <view class="activity-card__meta">
         <text>{{ activity.location }}</text>
       </view>
-      <view class="activity-card__footer">
-        <view class="pill" :class="{ 'pill--danger': isFull }">
-          {{ isFull ? "报名已满" : "报名中" }} · {{ activity.status }}/{{ activity.limit }}
-        </view>
+      <view v-if="activity.sponsor.length > 0" class="activity-card__footer">
         <text class="activity-card__hint">主办方：{{ activity.sponsor }}</text>
       </view>
     </view>
@@ -38,17 +45,14 @@ const navigateToDetails = (id: string) => {
 
 <style scoped>
 .activity-card {
-  display: flex;
   gap: 28rpx;
-  align-items: center;
   margin-bottom: 28rpx;
-  padding: 32rpx 28rpx;
 }
 
 .activity-card__cover {
-  width: 170rpx;
-  height: 170rpx;
-  border-radius: 28rpx;
+  width: 100%;
+  height: 360rpx;
+  border-radius: 26rpx 26rpx 0 0;
 }
 
 .activity-card__body {
@@ -56,6 +60,7 @@ const navigateToDetails = (id: string) => {
   display: flex;
   flex-direction: column;
   gap: 14rpx;
+  padding: 28rpx 42rpx;
 }
 
 .activity-card__title {
@@ -68,6 +73,7 @@ const navigateToDetails = (id: string) => {
   display: flex;
   gap: 12rpx;
   align-items: center;
+  justify-content: space-between;
   color: var(--alumni-muted);
   font-size: 24rpx;
 }

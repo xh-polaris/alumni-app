@@ -37,8 +37,9 @@ onShow(() => {
 });
 
 onHide(() => {
-  console.log("App Hide");
+  ensureAuth();
 });
+
 </script>
 <style lang="scss">
 @import "@/styles/theme.scss";

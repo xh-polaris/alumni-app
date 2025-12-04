@@ -5,7 +5,10 @@ import Layout from "@/components/Layout.vue";
 import Header from "@/pages/activity/details/Header.vue";
 import MetaInfo from "@/pages/activity/details/MetaInfo.vue";
 import { getActivityDetails, registerUser } from "@/api/activity/activity";
+import { getCheckInDetails,type Register } from "@/api/check-in";
 import type { Activity, registerData } from "@/api/activity/activity-interface";
+import { STORAGE_KEYS } from "@/constants/storage";
+
 
 const activityDetails = ref<Activity | null>(null);
 const isLoading = ref(true);
@@ -14,6 +17,10 @@ const showRegisterModal = ref(false);
 const registrants = ref<Array<{ name: string; phone: string }>>([]);
 const isSubmitting = ref(false);
 const participantCount = ref(0);
+const registers = ref<Array<Register>>([]);
+const isInvited = ref(uni.getStorageSync(STORAGE_KEYS.USER)?.id ? false : true);
+
+const userId = uni.getStorageSync(STORAGE_KEYS.USER)?.id || "";
 
 const resetRegistrants = () => {
   registrants.value = [{ name: "", phone: "" }];
@@ -27,12 +34,12 @@ const isRegistrationOpen = computed(() => {
   const withinWindow =
     now >= activityDetails.value.registerStart &&
     now <= activityDetails.value.registerEnd;
-  return withinWindow && activityDetails.value.status < activityDetails.value.limit;
+  return withinWindow && (activityDetails.value.status < activityDetails.value.limit || activityDetails.value.limit === -1);
 });
 
 const registrationHint = computed(() => {
   if (!activityDetails.value) return "";
-  if (activityDetails.value.status >= activityDetails.value.limit) {
+  if (activityDetails.value.status >= activityDetails.value.limit && activityDetails.value.limit !== -1) {
     return "当前名额已满";
   }
   const now = Date.now();
@@ -60,9 +67,21 @@ const fetchDetails = async (id: string) => {
   }
 };
 
+async function getRegisterInfo(activityId: string) {
+  try {
+    const res = await getCheckInDetails(`:${activityId}` );
+    registers.value = res.registers;
+    console.log("Register Info:", res.registers);
+    return res.registers;
+  } catch (error) {
+    uni.showToast({ title: "获取报名信息失败", icon: "none" });
+  }
+}
+
 onLoad((options) => {
   if (options?.id) {
     fetchDetails(options.id);
+    getRegisterInfo(options.id);
   } else {
     fetchError.value = "未找到活动信息";
     isLoading.value = false;
@@ -116,6 +135,19 @@ const submitRegister = async () => {
     isSubmitting.value = false;
   }
 };
+
+function jump2CheckInDetails() {
+  if (!activityDetails.value) return;
+  uni.navigateTo({ url: `/pages/check-in/index?activityId=${activityDetails.value.id}`,});
+}
+
+const isCheckInAvailable = computed(() => {
+  // if (!activityDetails.value) return false;
+  // const now = Date.now();
+  // return now >= activityDetails.value.start;
+
+  return true;
+});
 </script>
 
 <template>
@@ -131,13 +163,34 @@ const submitRegister = async () => {
             <Header :activity="activityDetails" />
             <MetaInfo :activity="activityDetails" :numbers="participantCount" />
           </view>
-          <button
+          <view class="surface-card" v-if="!isInvited">
+            <view class="section-title">报名记录</view>
+            <view class="row header-row pill">
+              <view>姓名</view>
+              <view>手机号</view>
+            </view>
+            <view class="row" v-for="register in registers" :key="register.id">
+              <view>{{ register.name }}</view>
+              <view>{{ register.phone }}</view>
+            </view>
+          </view>
+          <view class="one-line">
+            <button
             class="primary-button"
             :disabled="!isRegistrationOpen"
             @click="handleRegister"
+            v-if="!isInvited"
           >
             {{ isRegistrationOpen ? "立即报名" : registrationHint || "报名不可用" }}
           </button>
+          <button
+            class="primary-button"
+            :disabled="!isCheckInAvailable"
+            @click="jump2CheckInDetails"
+          >
+            {{ isCheckInAvailable ? "签到" :  "未到签到时间" }}
+          </button>
+          </view>
         </view>
       </view>
     </view>
@@ -189,6 +242,11 @@ const submitRegister = async () => {
 </template>
 
 <style scoped>
+.one-line {
+  display: flex;
+  gap: 20rpx;
+}
+
 .detail-wrapper {
   display: flex;
   flex-direction: column;
@@ -237,5 +295,19 @@ const submitRegister = async () => {
   color: #ff6347;
   font-size: 26rpx;
   text-align: right;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12rpx 24rpx;
+}
+
+.header-row {
+  font-weight: 600;
+  border-bottom: 1rpx solid var(--alumni-border-color);
+}
+.header-row :nth-child(2) {
+  margin-right: 100rpx;
 }
 </style>

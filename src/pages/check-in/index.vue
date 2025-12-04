@@ -22,16 +22,15 @@
             <text class="form-label">手机号</text>
             <input class="input-field" v-model="phone" type="text" maxlength="11" placeholder="请输入报名手机号" />
           </view>
-
-          <button class="primary-button" :disabled="!canSubmit || isSubmitting" @click="handleSignIn">
+          <view class="one-line">
+            <button class="secondary-button" :disabled="!canSubmit || isSubmitting" @click="handleSignIn">
             {{ isSubmitting ? "签到中..." : "点击签到" }}
           </button>
-
+            <button class="secondary-button" @click="navigateToDetails">查看签到详情</button>
+          </view>
           <view v-if="responseMessage" class="status-banner" :class="statusType">
             {{ responseMessage }}
           </view>
-
-          <button class="secondary-button" @click="navigateToDetails">查看签到详情</button>
         </view>
       </view>
     </view>
@@ -44,8 +43,10 @@ import Layout from "@/components/Layout.vue";
 import { signIn, getCheckInDetails } from "@/api/check-in";
 import type { checkInDetails, checkInData } from "@/api/check-in";
 import { timestampToTime } from "@/utils/time";
+import { onLoad } from "@dcloudio/uni-app";
 
-const ACTIVITY_ID = "674b0c0cc9fc4f1f67c398e4";
+
+const activityId = ref("");
 const name = ref("");
 const phone = ref("");
 const responseMessage = ref("");
@@ -58,7 +59,7 @@ const canSubmit = computed(() => name.value.trim().length > 0 && /^1[3-9]\d{9}$/
 
 const fetchStats = async () => {
   try {
-    const res: checkInDetails = await getCheckInDetails(ACTIVITY_ID);
+    const res: checkInDetails = await getCheckInDetails(activityId.value);
     stats.value = { total: res.total, checked: res.checked };
     lastSynced.value = timestampToTime(Date.now(), "HH:mm:ss");
     return res.registers;
@@ -67,6 +68,10 @@ const fetchStats = async () => {
     return [];
   }
 };
+
+onLoad((options) => {
+  if(options)activityId.value = options.activityId || "692ebe02aac8c1cafbca24e0";
+});
 
 onMounted(() => {
   fetchStats();
@@ -95,7 +100,7 @@ const handleSignIn = async () => {
     }
 
     const payload: checkInData = {
-      activityId: ACTIVITY_ID,
+      activityId: activityId.value,
       name: name.value.trim(),
       phone: phone.value.trim(),
     };
@@ -117,11 +122,17 @@ const handleSignIn = async () => {
 };
 
 const navigateToDetails = () => {
-  uni.navigateTo({ url: "/pages/sign-in-details/sign-in-details" });
+  uni.navigateTo({ url: `/pages/sign-in-details/sign-in-details` + `?activityId=${activityId.value? activityId.value: '692ebe02aac8c1cafbca24e0'}` });
 };
 </script>
 
 <style scoped>
+.one-line {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
 .stats-row {
   display: flex;
   flex-direction: column;

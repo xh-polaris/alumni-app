@@ -71,3 +71,4 @@ export const registerUser = (data: registerData): Promise<registerResponse> => {
         }
     });
 }
+

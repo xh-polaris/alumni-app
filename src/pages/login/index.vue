@@ -102,6 +102,10 @@ const login = async () => {
 const jump2register = () => {
   uni.navigateTo({ url: "/pages/login/sign-up" });
 };
+
+function handleInvitedButton() {
+  uni.reLaunch({ url: "/pages/activity/index"+`?role=invited` });
+}
 </script>
 
 <template>
@@ -145,7 +149,7 @@ const jump2register = () => {
                 placeholder="请输入验证码"
                 maxlength="6"
               />
-              <button class="ghost-button" :disabled="!canSendCode" @click="sendVerificationCode">
+              <button class="secondary-button" :disabled="!canSendCode" @click="sendVerificationCode">
                 {{ isSendingCode ? `${countdown}s` : "发送验证码" }}
               </button>
             </view>
@@ -169,6 +173,7 @@ const jump2register = () => {
             <text class="link" @click="jump2register">立即注册</text>
           </view>
         </view>
+        <button class="invited-button" @click="handleInvitedButton">我是嘉宾，直接签到</button>
       </view>
     </view>
   </Layout>
@@ -230,5 +235,18 @@ const jump2register = () => {
 
 .link {
   color: var(--alumni-primary);
+}
+
+.invited-button {
+  background: white;
+  width: 100%;
+  padding: 22rpx;
+  border-radius: 40rpx;
+  border: 1px solid var(--alumni-border);
+  color: var(--alumni-primary);
+  font-size: 30rpx;
+  font-weight: 500;
+  text-align: center;
+  box-shadow: 0 10rpx 20rpx rgba(6, 24, 17, 0.08);
 }
 </style>

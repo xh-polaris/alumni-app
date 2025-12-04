@@ -1,17 +1,17 @@
 <template>
   <view class="header" v-if="activity">
-    <view class="pill">主办方 · {{ activity.sponsor }}</view>
-    <view class="title">{{ activity.name }}</view>
-    <view class="subtitle">{{ activity.exactLocation }}</view>
+    <view class="title">{{ activity.name.split("\n")[0] }}</view>
+    <view class="title">{{ activity.name.split("\n")[1] }}</view>
   </view>
 </template>
 
 <script setup lang="ts">
 import type { Activity } from "@/api/activity/activity-interface";
 
-defineProps<{
+const props = defineProps<{
   activity: Activity | null;
 }>();
+
 </script>
 
 <style scoped>
