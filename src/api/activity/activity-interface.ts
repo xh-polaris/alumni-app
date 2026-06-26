@@ -84,6 +84,30 @@ export interface getActivityDetailsResponse {
     numbers: number
 }
 
+/**
+ * @description 当前用户在活动下的报名情况
+ */
+export interface Register {
+    id: string;
+    activityId: string;
+    userId?: string;
+    name: string;
+    phone: string;
+    checkIn: boolean;
+    createTime: number;
+    updateTime: number;
+}
+
+export interface getMyActivityRegistrationsData {
+    activityId: string;
+}
+
+export interface getMyActivityRegistrationsResponse {
+    total: number;
+    checked: number;
+    registers: Register[];
+}
+
 
 
 /**
@@ -103,6 +127,5 @@ interface Item {
     name: string;
     phone: string;
 }
-
 
 

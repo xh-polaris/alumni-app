@@ -5,7 +5,7 @@
  * @return {string} 时间字符串
  */
 export function timestampToTime(timestamp: number, format: string = 'yyyy-MM-DD HH:mm'): string {
-    const date = new Date(timestamp);
+    const date = new Date(timestamp * 1000);
 
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -26,11 +26,11 @@ export function timestampToTime(timestamp: number, format: string = 'yyyy-MM-DD 
 /**
  * @description 将日期时间字符串转换为时间戳
  * @param {string} dateString 日期时间字符串，格式应与 timestampToDate 中的 format 参数一致
- * @returns {number} 时间戳（毫秒）
+ * @returns {number} 时间戳（秒）
  */
 export function dateToTimestamp(dateString: string): number {
     const [year, month, day, hour, minute, second] = dateString.split(/[- :]/);
 
     const date = new Date(+year, +month - 1, +day, +hour, +minute, +second);
-    return date.getTime();
+    return Math.floor(date.getTime() / 1000);
 }

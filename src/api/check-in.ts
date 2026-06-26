@@ -31,6 +31,7 @@ export const signIn = (data: checkInData) => {
         url: "/activity/check_in",
         method: "POST",
         data: data,
+        auth: false,
     });
 };
 
@@ -40,6 +41,7 @@ export const getCheckInDetails = (activityId: string) => {
         method: "POST",
         data: {
             activityId: activityId
-        }
+        },
+        auth: false,
     });
 };

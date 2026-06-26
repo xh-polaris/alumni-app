@@ -1,12 +1,13 @@
 import type {
     createActivityData, createActivityResponse, getActivityDetailsData, getActivityDetailsResponse,
+    getMyActivityRegistrationsData,
+    getMyActivityRegistrationsResponse,
     getActivityListData,
     getActivityListResponse,
     registerData,
     registerResponse, updateActivityData, updateActivityResponse,
 } from "@/api/activity/activity-interface";
 import {httpRequest} from "@/api/request";
-import { STORAGE_KEYS } from "@/constants/storage";
 
 
 /**
@@ -17,7 +18,7 @@ export const createActivity = (data: createActivityData): Promise<createActivity
     return httpRequest<createActivityResponse>({
         url: '/activity/create',
         method: 'POST',
-        data: data,
+        data,
     });
 }
 
@@ -29,7 +30,7 @@ export const updateActivity = (data: updateActivityData): Promise<updateActivity
     return httpRequest<updateActivityResponse>({
         url: '/activity/update',
         method: 'POST',
-        data: data,
+        data,
     });
 }
 
@@ -41,7 +42,8 @@ export const getActivityList = (data: getActivityListData): Promise<getActivityL
     return httpRequest<getActivityListResponse>({
         url: '/activity/get_many',
         method: 'POST',
-        data: data,
+        data,
+        auth: false,
     });
 }
 
@@ -53,7 +55,22 @@ export const getActivityDetails = (data: getActivityDetailsData): Promise<getAct
     return httpRequest<getActivityDetailsResponse>({
         url: '/activity/get',
         method: 'POST',
-        data: data,
+        data,
+        auth: false,
+    });
+}
+
+/**
+ * @description 获取当前用户在某活动下的报名记录
+ * @param data
+ */
+export const getMyActivityRegistrations = (data: getMyActivityRegistrationsData): Promise<getMyActivityRegistrationsResponse> => {
+    return httpRequest<getMyActivityRegistrationsResponse>({
+        url: '/activity/get_register',
+        method: 'POST',
+        data: {
+            activityId: `:${data.activityId}`,
+        },
     });
 }
 
@@ -65,10 +82,6 @@ export const registerUser = (data: registerData): Promise<registerResponse> => {
     return httpRequest<registerResponse>({
         url: '/activity/register',
         method: 'POST',
-        data: data,
-        headers: {
-            'Authorization': uni.getStorageSync(STORAGE_KEYS.USER).accessToken
-        }
+        data,
     });
 }
-

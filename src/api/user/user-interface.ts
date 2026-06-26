@@ -16,7 +16,7 @@ export interface SendVerifyCodeResponse {
  * 注册接口
  */
 export interface signUpData {
-    authid: string //电话号码
+    authId: string //电话号码
     authType: string //默认为"phone"
     verifyCode: string
     password: string
@@ -54,7 +54,7 @@ export interface UpdateInfo {
     gender?: number//1男2女0未填写
     birthday?: number// 当天0时的时间戳
     phone?: string
-    wxid?: string
+    wxId?: string
     hometown?: string
 }
 
@@ -92,7 +92,7 @@ export interface UpdateEducation {
 }
 
 export interface Education {
-    phrase: string
+    phase: string
     school: string
     year: number//毕业年份
 }
@@ -111,10 +111,9 @@ export interface UserInfo {
     gender: number
     birthday: number
     phone: string
-    wxid: string
+    wxId: string
     hometown: string
     employments: Employment[]
     hometownEducations: Education[]
     shanghaiEducations: Education[]
 }
-
