@@ -242,11 +242,13 @@ const saveEmployment = async (list: Employment[]) => {
               <view class="info-row"><text>家乡</text><text>{{ profile.hometown || "未填写" }}</text></view>
             </view>
             <view v-else>
+              <!-- #ifdef MP-WEIXIN -->
               <view class="auth-tools">
                 <button class="secondary-button auth-tool" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">获取头像</button>
                 <button class="secondary-button auth-tool" open-type="getPhoneNumber" @getphonenumber="onPhoneNumberAuthorized">授权手机号</button>
                 <button class="secondary-button auth-tool" :disabled="isAuthorizingWechat" @click="authorizeWechatProfile">{{ isAuthorizingWechat ? "获取中" : "获取微信名" }}</button>
               </view>
+              <!-- #endif -->
               <view class="form-row"><text class="form-label">姓名</text><input v-model="profile.name" class="input-field" /></view>
               <view class="form-row"><text class="form-label">性别</text><picker mode="selector" :range="genders" :value="genderIndex" @change="onGenderChange"><view class="picker-field">{{ genders[genderIndex] }}</view></picker></view>
               <view class="form-row"><text class="form-label">生日</text><picker mode="date" :value="birthdayDisplay" @change="onBirthdayPicked"><view class="picker-field">{{ birthdayDisplay || "请选择日期" }}</view></picker></view>
