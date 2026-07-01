@@ -92,6 +92,19 @@ onShow(loadProfile);
 
 const openLogin = () => uni.navigateTo({ url: "/pages/login/index" });
 const openRegister = () => uni.navigateTo({ url: "/pages/login/sign-up" });
+const logout = () => {
+  uni.showModal({
+    title: "退出登录",
+    content: "确定退出当前账号吗？",
+    success: (result) => {
+      if (!result.confirm) return;
+      uni.removeStorageSync(STORAGE_KEYS.USER);
+      uni.removeStorageSync(STORAGE_KEYS.DEV_MODE);
+      showGuestProfile();
+      uni.showToast({ title: "已退出登录", icon: "success" });
+    },
+  });
+};
 
 const startEdit = () => {
   profileBackup.value = { ...profile };
@@ -248,6 +261,7 @@ const saveEmployment = async (list: Employment[]) => {
           <EducationExperience v-model="shanghaiEducations" title="在沪教育经历" @save="(list) => saveEducation(1, list)" />
           <EducationExperience v-model="hometownEducations" title="家乡教育经历" @save="(list) => saveEducation(0, list)" />
           <EmploymentExperience v-model="employmentList" @save="saveEmployment" />
+          <button class="logout-button" @click="logout">退出登录</button>
         </template>
       </view>
     </view>
@@ -279,4 +293,6 @@ const saveEmployment = async (list: Employment[]) => {
 .info-row text:last-child { color: var(--alumni-text); text-align: right; word-break: break-all; }
 .profile-skeleton__hero { height: 154rpx; margin-bottom: 24rpx; border-radius: var(--alumni-radius-lg); }
 .profile-skeleton__line { width: 100%; height: 48rpx; margin-bottom: 24rpx; }
+.logout-button { width: 100%; margin: 26rpx 0 0; min-height: 76rpx; border-radius: 99rpx; background: #fff; color: #B42318; font-size: 26rpx; border: 1rpx solid rgba(180,35,24,.18); }
+.logout-button::after { border: 0; }
 </style>
