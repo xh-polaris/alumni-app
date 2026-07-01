@@ -16,7 +16,9 @@ $alumni-radius-md: 22rpx;
 $alumni-radius-sm: 16rpx;
 $alumni-shadow: 0 18rpx 50rpx rgba(21, 63, 50, 0.08);
 
-:root {
+:root,
+/* 小程序不支持 :root，需同时定义在 page 上 */
+page {
   --alumni-primary: #{$alumni-primary};
   --alumni-primary-strong: #{$alumni-primary-strong};
   --alumni-primary-soft: #{$alumni-primary-soft};

@@ -11,6 +11,7 @@ import type {
     UpdateEmploymentResponse,
     UpdateEducation,
     UpdateEducationResponse,
+    ExchangeWxPhoneResp,
     UserInfo
 } from '@/api/user/user-interface';
 import { ApiError, httpRequest } from '@/api/request';
@@ -88,5 +89,14 @@ export const getUserInfo = (): Promise<UserInfo> => {
     return httpRequest<UserInfo>({
         url: '/user/info',
         method: 'GET',
+    });
+};
+
+// 微信手机号换取
+export const exchangeWxPhone = (code: string): Promise<ExchangeWxPhoneResp> => {
+    return httpRequest<ExchangeWxPhoneResp>({
+        url: '/user/exchange_wx_phone',
+        method: 'POST',
+        data: { code },
     });
 };

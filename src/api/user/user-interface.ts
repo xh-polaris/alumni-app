@@ -54,7 +54,6 @@ export interface UpdateInfo {
     gender?: number//1男2女0未填写
     birthday?: number// 当天0时的时间戳
     phone?: string
-    wxId?: string
     hometown?: string
 }
 
@@ -111,9 +110,13 @@ export interface UserInfo {
     gender: number
     birthday: number
     phone: string
-    wxId: string
     hometown: string
     employments: Employment[]
     hometownEducations: Education[]
     shanghaiEducations: Education[]
+}
+
+/** 微信手机号换取 */
+export interface ExchangeWxPhoneResp {
+    phoneNumber: string
 }

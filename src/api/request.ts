@@ -3,8 +3,10 @@ import { STORAGE_KEYS } from "@/constants/storage";
 const ONLINE_BASE_URL = "https://api.xhpolaris.com/alumni";
 let BASE_URL = import.meta.env.VITE_API_BASE_URL || ONLINE_BASE_URL;
 
+const BUILD_DEV_MODE = import.meta.env.VITE_DEV_MODE === "true";
+
 // #ifdef H5
-if (import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL) {
+if (import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_DEV_MODE !== "true") {
   BASE_URL = "/api";
 }
 // #endif
@@ -59,7 +61,7 @@ export const httpRequest = <T, TData = unknown>(params: RequestParams<TData>): P
   if (token) {
     header.Authorization = token;
   }
-  if (uni.getStorageSync(STORAGE_KEYS.DEV_MODE) === "dev") {
+  if (BUILD_DEV_MODE || uni.getStorageSync(STORAGE_KEYS.DEV_MODE) === "dev") {
     header["X-Alumni-Mode"] = "dev";
   }
 

@@ -7,6 +7,7 @@ import StatePanel from "@/components/StatePanel.vue";
 import EducationExperience from "@/pages/mine/EducationExperience.vue";
 import EmploymentExperience from "@/pages/mine/EmploymentExperience.vue";
 import { getUserInfo, updateUserInfo, updateEducation, updateEmployment } from "@/api/user/user";
+import { exchangeWxPhone } from "@/api/user/user";
 import { ApiError, getErrorMessage } from "@/api/request";
 import type { Education, Employment, UpdateInfo, UserInfo } from "@/api/user/user-interface";
 import { dateToTimestamp, timestampToTime } from "@/utils/time";
@@ -18,13 +19,12 @@ interface ProfileDraft {
   gender: number;
   birthday: number;
   phone: string;
-  wxId: string;
   hometown: string;
 }
 
 const genders = ["未选择", "男", "女"];
 const NOT_AUTHENTICATED_CODE = 1000;
-const profile = reactive<ProfileDraft>({ avatar: "", name: "", gender: 0, birthday: 0, phone: "", wxId: "", hometown: "" });
+const profile = reactive<ProfileDraft>({ avatar: "", name: "", gender: 0, birthday: 0, phone: "", hometown: "" });
 const profileBackup = shallowRef<ProfileDraft | null>(null);
 const shanghaiEducations = ref<Education[]>([]);
 const hometownEducations = ref<Education[]>([]);
@@ -34,14 +34,13 @@ const loadError = ref("");
 const isEditingInfo = ref(false);
 const savingInfo = ref(false);
 const isAuthed = ref(false);
-const isAuthorizingWechat = ref(false);
 
 const genderIndex = computed(() => Math.max(0, genders[profile.gender] ? profile.gender : 0));
 const birthdayDisplay = computed(() => profile.birthday ? timestampToTime(profile.birthday, "yyyy-MM-DD") : "");
 const avatarInitial = computed(() => profile.name.trim().slice(0, 1) || "友");
 const completeness = computed(() => {
-  const completed = [profile.avatar, profile.name, profile.gender, profile.birthday, profile.phone, profile.wxId, profile.hometown].filter(Boolean).length;
-  return Math.round((completed / 7) * 100);
+  const completed = [profile.avatar, profile.name, profile.gender, profile.birthday, profile.phone, profile.hometown].filter(Boolean).length;
+  return Math.round((completed / 6) * 100);
 });
 
 const assignProfile = (data: UserInfo) => {
@@ -51,7 +50,6 @@ const assignProfile = (data: UserInfo) => {
     gender: data.gender || 0,
     birthday: data.birthday || 0,
     phone: data.phone || "",
-    wxId: data.wxId || "",
     hometown: data.hometown || "",
   });
   shanghaiEducations.value = (data.shanghaiEducations ?? []).map((item) => ({ ...item }));
@@ -116,35 +114,26 @@ const onChooseAvatar = (event: { detail?: { avatarUrl?: string } }) => {
   profile.avatar = avatarUrl;
   if (!isEditingInfo.value) startEdit();
 };
-const authorizeWechatProfile = async () => {
-  if (isAuthorizingWechat.value) return;
-
-  // #ifdef MP-WEIXIN
-  isAuthorizingWechat.value = true;
-  try {
-    const response = await uni.getUserProfile({ desc: "用于完善校友资料" });
-    const userInfo = response.userInfo as { nickName?: string; avatarUrl?: string };
-    if (userInfo.nickName) profile.wxId = userInfo.nickName;
-    if (!profile.avatar && userInfo.avatarUrl) profile.avatar = userInfo.avatarUrl;
-    if (!isEditingInfo.value) startEdit();
-    uni.showToast({ title: "微信名已获取", icon: "success" });
-  } catch {
-    uni.showToast({ title: "未完成微信授权", icon: "none" });
-  } finally {
-    isAuthorizingWechat.value = false;
-  }
-  // #endif
-
-  // #ifndef MP-WEIXIN
-  uni.showToast({ title: "当前端请手动填写微信名", icon: "none" });
-  // #endif
-};
-const onPhoneNumberAuthorized = (event: { detail?: { errMsg?: string; phoneNumber?: string } }) => {
+const onPhoneNumberAuthorized = async (event: { detail?: { errMsg?: string; phoneNumber?: string; code?: string } }) => {
   const detail = event.detail;
   if (!detail?.errMsg?.includes("ok")) {
     uni.showToast({ title: "未完成手机号授权", icon: "none" });
     return;
   }
+  // 新版微信返回 code，需要服务端换取手机号
+  if (detail.code) {
+    try {
+      const resp = await exchangeWxPhone(detail.code);
+      profile.phone = resp.phoneNumber;
+      if (!isEditingInfo.value) startEdit();
+      uni.showToast({ title: "手机号已获取", icon: "success" });
+      return;
+    } catch {
+      uni.showToast({ title: "手机号换取失败，请手动填写", icon: "none" });
+      return;
+    }
+  }
+  // 兼容旧版微信直接返回 phoneNumber
   if (detail.phoneNumber) {
     profile.phone = detail.phoneNumber;
     if (!isEditingInfo.value) startEdit();
@@ -164,7 +153,7 @@ const saveInfo = async () => {
     return;
   }
   savingInfo.value = true;
-  const payload: UpdateInfo = { ...profile, name: profile.name.trim(), phone: profile.phone.trim(), wxId: profile.wxId.trim(), hometown: profile.hometown.trim() };
+  const payload: UpdateInfo = { ...profile, name: profile.name.trim(), phone: profile.phone.trim(), hometown: profile.hometown.trim() };
   try {
     const response = await updateUserInfo(payload);
     if (response.code !== 0) throw new Error(response.msg || "保存失败");
@@ -238,7 +227,6 @@ const saveEmployment = async (list: Employment[]) => {
               <view class="info-row"><text>性别</text><text>{{ genders[genderIndex] }}</text></view>
               <view class="info-row"><text>生日</text><text>{{ birthdayDisplay || "未填写" }}</text></view>
               <view class="info-row"><text>手机号</text><text>{{ profile.phone || "未填写" }}</text></view>
-              <view class="info-row"><text>微信名</text><text>{{ profile.wxId || "未填写" }}</text></view>
               <view class="info-row"><text>家乡</text><text>{{ profile.hometown || "未填写" }}</text></view>
             </view>
             <view v-else>
@@ -246,14 +234,12 @@ const saveEmployment = async (list: Employment[]) => {
               <view class="auth-tools">
                 <button class="secondary-button auth-tool" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">获取头像</button>
                 <button class="secondary-button auth-tool" open-type="getPhoneNumber" @getphonenumber="onPhoneNumberAuthorized">授权手机号</button>
-                <button class="secondary-button auth-tool" :disabled="isAuthorizingWechat" @click="authorizeWechatProfile">{{ isAuthorizingWechat ? "获取中" : "获取微信名" }}</button>
               </view>
               <!-- #endif -->
               <view class="form-row"><text class="form-label">姓名</text><input v-model="profile.name" class="input-field" /></view>
               <view class="form-row"><text class="form-label">性别</text><picker mode="selector" :range="genders" :value="genderIndex" @change="onGenderChange"><view class="picker-field">{{ genders[genderIndex] }}</view></picker></view>
               <view class="form-row"><text class="form-label">生日</text><picker mode="date" :value="birthdayDisplay" @change="onBirthdayPicked"><view class="picker-field">{{ birthdayDisplay || "请选择日期" }}</view></picker></view>
               <view class="form-row"><text class="form-label">手机号</text><input v-model="profile.phone" class="input-field" type="number" maxlength="11" /></view>
-              <view class="form-row"><text class="form-label">微信名</text><input v-model="profile.wxId" class="input-field" placeholder="可授权获取，也可手动填写" /></view>
               <view class="form-row"><text class="form-label">家乡</text><input v-model="profile.hometown" class="input-field" placeholder="例：宁波北仑" /></view>
               <view class="button-row"><button class="secondary-button" :disabled="savingInfo" @click="cancelEdit">取消</button><button class="primary-button" :disabled="savingInfo" @click="saveInfo">{{ savingInfo ? "保存中…" : "保存" }}</button></view>
             </view>
@@ -284,7 +270,7 @@ const saveEmployment = async (list: Employment[]) => {
 .profile-hero__edit::after { border: 0; }
 .basic-card { padding: 30rpx; }
 .basic-card__title { font-family: "Songti SC", serif; font-size: 31rpx; font-weight: 600; }
-.auth-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; margin: 22rpx 0 28rpx; }
+.auth-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; margin: 22rpx 0 28rpx; }
 .auth-tool { min-height: 72rpx; padding: 16rpx 8rpx; font-size: 23rpx; }
 .info-list { margin-top: 18rpx; }
 .info-row { display: flex; align-items: center; justify-content: space-between; gap: 28rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--alumni-border); font-size: 25rpx; }
