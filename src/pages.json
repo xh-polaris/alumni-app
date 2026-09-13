@@ -34,6 +34,24 @@
       }
     },
     {
+      "path": "pages/webview/index",
+      "style": {
+        "navigationBarTitleText": "资讯详情",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": false,
+        "navigationBarBackgroundColor": "#153f32"
+      }
+    },
+    {
+      "path": "pages/mine/complete-profile",
+      "style": {
+        "navigationBarTitleText": "补全认证资料",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": false,
+        "navigationBarBackgroundColor": "#153f32"
+      }
+    },
+    {
       "path": "pages/mine/index",
       "style": {
         "navigationBarTitleText": "校友信息",

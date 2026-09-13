@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { Activity } from "@/api/activity/activity-interface";
+import type { PublicActivity } from "@/api/activity/activity-interface";
 import { timestampToTime } from "@/utils/time";
 
-const props = defineProps<{ activity: Activity }>();
+const props = defineProps<{ activity: PublicActivity }>();
 const coverFailed = ref(false);
 const coverUrl = computed(() =>
   !coverFailed.value && props.activity.cover ? props.activity.cover : "/static/logo.png",

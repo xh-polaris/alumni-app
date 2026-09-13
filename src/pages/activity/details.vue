@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onShow } from "@dcloudio/uni-app";
 import Layout from "@/components/Layout.vue";
 import StatePanel from "@/components/StatePanel.vue";
 import Header from "@/pages/activity/details/Header.vue";
 import MetaInfo from "@/pages/activity/details/MetaInfo.vue";
-import { getActivityDetails, getMyActivityRegistrations, registerUser } from "@/api/activity/activity";
+import { getMyActivityRegistrations, getPublicActivityDetail, registerUser } from "@/api/activity/activity";
+import type { PublicActivity, registerData } from "@/api/activity/activity-interface";
+import { getRegisterErrorMessage } from "@/api/errors";
 import { getErrorMessage } from "@/api/request";
-import type { Activity, registerData } from "@/api/activity/activity-interface";
+import { getProfile } from "@/api/user/user";
+import type { MemberRole } from "@/api/user/user-interface";
 import { STORAGE_KEYS } from "@/constants/storage";
 
 interface RegistrantDraft {
@@ -16,7 +19,7 @@ interface RegistrantDraft {
 }
 
 const activityId = ref("");
-const activityDetails = shallowRef<Activity | null>(null);
+const activityDetails = shallowRef<PublicActivity | null>(null);
 const isLoading = ref(true);
 const fetchError = ref("");
 const showRegisterModal = ref(false);
@@ -25,7 +28,11 @@ const isSubmitting = ref(false);
 const participantCount = ref(0);
 const myRegistrationCount = ref(0);
 const isCheckingRegistration = ref(false);
-const canCheckMyRegistration = computed(() => Boolean(uni.getStorageSync(STORAGE_KEYS.USER)?.id));
+/** null = 未登录；pending/alumni/guest = GET /user/profile 的身份 */
+const memberRole = ref<MemberRole | null>(null);
+const hasSession = computed(() => Boolean(uni.getStorageSync(STORAGE_KEYS.USER)?.accessToken));
+const isLoggedIn = computed(() => hasSession.value || memberRole.value !== null);
+const isIdentityPending = computed(() => isLoggedIn.value && memberRole.value === "pending");
 
 const validatePhone = (value: string) => /^1[3-9]\d{9}$/.test(value);
 const resetRegistrants = () => { registrants.value = [{ name: "", phone: "" }]; };
@@ -33,24 +40,43 @@ const resetRegistrants = () => { registrants.value = [{ name: "", phone: "" }]; 
 const registrationState = computed<"open" | "registered" | "full" | "upcoming" | "closed" | "unavailable">(() => {
   const activity = activityDetails.value;
   if (!activity) return "unavailable";
-  if (activity.limit !== -1 && activity.status >= activity.limit) return "full";
+  if (activity.limit !== -1 && activity.registrationCount >= activity.limit) return "full";
   const now = Math.floor(Date.now() / 1000);
   if (now < activity.registerStart) return "upcoming";
   if (now > activity.registerEnd) return "closed";
   if (myRegistrationCount.value > 0) return "registered";
   return "open";
 });
-const registrationLabel = computed(() => ({
-  open: canCheckMyRegistration.value ? "立即报名" : "登录后报名",
-  registered: "已报名",
-  full: "名额已满",
-  upcoming: "报名尚未开始",
-  closed: "报名已截止",
-  unavailable: "暂不可报名",
-}[registrationState.value]));
+
+/** 身份门禁叠加在时间窗 / 名额门禁之上 */
+const registrationLabel = computed(() => {
+  if (registrationState.value !== "open") {
+    return {
+      open: "",
+      registered: "已报名",
+      full: "名额已满",
+      upcoming: "报名尚未开始",
+      closed: "报名已截止",
+      unavailable: "暂不可报名",
+    }[registrationState.value];
+  }
+  if (!isLoggedIn.value) return "登录后报名";
+  if (isIdentityPending.value) return "认证通过后可报名";
+  return "立即报名";
+});
+const isRegisterDisabled = computed(() => {
+  if (registrationState.value !== "open") return true;
+  if (!isLoggedIn.value) return false;
+  return isIdentityPending.value || isCheckingRegistration.value;
+});
+const identityHint = computed(() =>
+  isIdentityPending.value
+    ? "账号正在人工核验中，认证通过后即可报名活动。"
+    : "",
+);
 
 const fetchMyRegistration = async () => {
-  if (!activityId.value || !canCheckMyRegistration.value) {
+  if (!activityId.value || !hasSession.value) {
     myRegistrationCount.value = 0;
     return;
   }
@@ -65,15 +91,26 @@ const fetchMyRegistration = async () => {
   }
 };
 
+/** 身份用于按钮门禁；失败时按未登录处理，服务端 403 仍是最终兜底 */
+const fetchMemberRole = async () => {
+  if (!hasSession.value) return;
+  try {
+    const profile = await getProfile();
+    memberRole.value = profile.memberRole;
+  } catch {
+    memberRole.value = null;
+  }
+};
+
 const fetchDetails = async () => {
   if (!activityId.value) return;
   isLoading.value = true;
   fetchError.value = "";
   try {
-    const response = await getActivityDetails({ id: activityId.value });
-    activityDetails.value = response.activity;
-    participantCount.value = response.numbers;
-    await fetchMyRegistration();
+    const activity = await getPublicActivityDetail(activityId.value);
+    activityDetails.value = activity;
+    participantCount.value = activity.registrationCount ?? 0;
+    await Promise.all([fetchMemberRole(), fetchMyRegistration()]);
   } catch (error) {
     fetchError.value = getErrorMessage(error, "活动详情加载失败，请稍后重试");
   } finally {
@@ -91,10 +128,25 @@ onLoad((options) => {
   fetchDetails();
 });
 
+onShow(() => {
+  // 从登录页返回后刷新身份，避免仍停留在「登录后报名」
+  if (!activityId.value || isLoading.value || !activityDetails.value) return;
+  if (memberRole.value === null) {
+    void (async () => {
+      await fetchMemberRole();
+      await fetchMyRegistration();
+    })();
+  }
+});
+
 const openRegister = () => {
   if (registrationState.value !== "open") return;
-  if (!canCheckMyRegistration.value) {
+  if (!isLoggedIn.value) {
     uni.navigateTo({ url: "/pages/login/index" });
+    return;
+  }
+  if (isIdentityPending.value) {
+    uni.showToast({ title: "认证通过后可报名", icon: "none" });
     return;
   }
   resetRegistrants();
@@ -129,7 +181,8 @@ const submitRegister = async () => {
     myRegistrationCount.value = normalized.length;
     await fetchDetails();
   } catch (error) {
-    uni.showToast({ title: getErrorMessage(error, "报名失败，请稍后重试"), icon: "none" });
+    // 服务端身份校验（403）优先展示为「认证通过后可报名」，不依赖按钮置灰
+    uni.showToast({ title: getRegisterErrorMessage(error), icon: "none" });
   } finally {
     isSubmitting.value = false;
   }
@@ -172,13 +225,14 @@ const openCheckIn = () => {
       <view class="action-dock__inner">
         <button
           class="secondary-button"
-          :disabled="registrationState !== 'open' || isCheckingRegistration"
+          :disabled="isRegisterDisabled"
           @click="openRegister"
         >
           {{ isCheckingRegistration ? "检查报名中" : registrationLabel }}
         </button>
-        <button class="primary-button" @click="openCheckIn">活动签到</button>
+        <button v-if="registrationState === 'registered'" class="primary-button" @click="openCheckIn">活动签到</button>
       </view>
+      <view v-if="identityHint" class="action-dock__hint">{{ identityHint }}</view>
     </view>
 
     <Transition name="modal">
@@ -229,6 +283,7 @@ const openCheckIn = () => {
 .action-dock__inner { max-width: 720rpx; display: flex; gap: 16rpx; margin: 0 auto; }
 .action-dock__inner .primary-button,
 .action-dock__inner .secondary-button { flex: 1; }
+.action-dock__hint { max-width: 720rpx; margin: 12rpx auto 0; color: var(--alumni-muted); font-size: 21rpx; line-height: 1.5; text-align: center; }
 .register-modal { position: fixed; z-index: 100; inset: 0; display: flex; align-items: flex-end; justify-content: center; }
 .register-modal__backdrop { position: absolute; inset: 0; background: rgba(15, 48, 38, 0.42); }
 .register-modal__content { position: relative; z-index: 1; width: 100%; max-height: 88vh; overflow-y: auto; padding: 18rpx 32rpx calc(34rpx + env(safe-area-inset-bottom)); border-radius: 38rpx 38rpx 0 0; background: #fff; }

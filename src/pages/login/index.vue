@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import Layout from "@/components/Layout.vue";
 import { getErrorMessage } from "@/api/request";
-import { sendVerifyCode, signIn } from "@/api/user/user";
+import { getProfile, sendVerifyCode, signIn } from "@/api/user/user";
 import type { signInData } from "@/api/user/user-interface";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { useCountdown } from "@/composables/useCountdown";
@@ -66,7 +66,33 @@ const login = async () => {
   try {
     const session = await signIn(payload);
     uni.setStorageSync(STORAGE_KEYS.USER, session);
-    uni.showToast({ title: "登录成功", icon: "success" });
+
+    // 旧客户端注册的账号缺少分会/认证资料，登录后必须引导补全（契约 2.3）。
+    // 档案读取失败不能影响登录本身：读不到就交给个人中心再提示，
+    // 绝不能因为一次探测失败就把刚写入的会话清掉。
+    let profileComplete: boolean | null = null;
+    try {
+      const profile = await getProfile();
+      profileComplete = profile.profileComplete !== false;
+    } catch {
+      profileComplete = null;
+    }
+
+    // 登录成功的前提是会话真的还在（防止任何环节把它清掉后仍然提示成功）
+    const stored = uni.getStorageSync(STORAGE_KEYS.USER) as { accessToken?: string } | undefined;
+    if (!stored?.accessToken) {
+      uni.showToast({ title: "登录状态未能保存，请重试", icon: "none" });
+      return;
+    }
+
+    if (profileComplete === false) {
+      uni.navigateTo({ url: "/pages/mine/complete-profile" });
+      return;
+    }
+    uni.showToast({
+      title: profileComplete === null ? "已登录，档案待完善" : "登录成功",
+      icon: profileComplete === null ? "none" : "success",
+    });
     setTimeout(() => uni.switchTab({ url: "/pages/news/index" }), 350);
   } catch (error) {
     uni.showToast({ title: getErrorMessage(error, "登录失败，请稍后重试"), icon: "none" });

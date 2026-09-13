@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { Activity } from "@/api/activity/activity-interface";
+import type { PublicActivity } from "@/api/activity/activity-interface";
 import { timestampToTime } from "@/utils/time";
 import { getLocationLabel } from "@/utils/location";
 
 const props = withDefaults(defineProps<{
-  activity: Activity;
+  activity: PublicActivity;
   numbers?: number;
 }>(), { numbers: 0 });
 
@@ -14,6 +14,7 @@ const startTime = computed(() => timestampToTime(props.activity.start, "yyyy年M
 const registerWindow = computed(() =>
   `${timestampToTime(props.activity.registerStart, "MM月DD日 HH:mm")} 至 ${timestampToTime(props.activity.registerEnd, "MM月DD日 HH:mm")}`,
 );
+const chapterLabel = computed(() => props.activity.chapterName || "全部分会");
 const capacity = computed(() => {
   if (props.activity.limit === -1) return `${props.numbers} 人已报名 · 不限名额`;
   return `${props.numbers} / ${props.activity.limit} 人`;
@@ -22,6 +23,9 @@ const capacity = computed(() => {
 
 <template>
   <view class="activity-info surface-card">
+    <view class="activity-info__tags">
+      <view class="pill activity-info__chapter">{{ chapterLabel }}</view>
+    </view>
     <view class="activity-info__grid">
       <view class="activity-info__item">
         <text class="activity-info__label">活动时间</text>
@@ -57,6 +61,8 @@ const capacity = computed(() => {
 
 <style scoped>
 .activity-info { padding: 32rpx; }
+.activity-info__tags { display: flex; align-items: center; gap: 10rpx; margin-bottom: 22rpx; }
+.activity-info__chapter { background: var(--alumni-primary-soft); color: var(--alumni-primary); }
 .activity-info__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16rpx; }
 .activity-info__item { min-width: 0; padding: 22rpx; border-radius: var(--alumni-radius-md); background: var(--alumni-surface-muted); }
 .activity-info__label { display: block; color: var(--alumni-muted); font-size: 21rpx; }

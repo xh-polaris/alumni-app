@@ -1,23 +1,26 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { Activity } from "@/api/activity/activity-interface";
+import type { PublicActivity } from "@/api/activity/activity-interface";
 import { timestampToTime } from "@/utils/time";
 
-const props = defineProps<{ activity: Activity }>();
+const props = defineProps<{ activity: PublicActivity }>();
 const coverFailed = ref(false);
 
 const coverUrl = computed(() =>
   !coverFailed.value && props.activity.cover ? props.activity.cover : "/static/logo.png",
 );
 const startTime = computed(() => timestampToTime(props.activity.start, "MM月DD日 HH:mm"));
+/** 契约 2.9：已报名人数为 registrationCount，旧接口放在 status 上的语义不再使用 */
+const registeredCount = computed(() => props.activity.registrationCount ?? 0);
+const isFull = computed(() => props.activity.limit !== -1 && registeredCount.value >= props.activity.limit);
 const capacityText = computed(() => {
   if (props.activity.limit === -1) return "不限名额";
-  const remaining = Math.max(props.activity.limit - props.activity.status, 0);
+  const remaining = Math.max(props.activity.limit - registeredCount.value, 0);
   return remaining > 0 ? `剩余 ${remaining} 席` : "名额已满";
 });
 const registrationState = computed(() => {
   const now = Math.floor(Date.now() / 1000);
-  if (props.activity.limit !== -1 && props.activity.status >= props.activity.limit) return "full";
+  if (isFull.value) return "full";
   if (now < props.activity.registerStart) return "upcoming";
   if (now > props.activity.registerEnd) return "closed";
   return "open";
@@ -28,14 +31,10 @@ const statusLabel = computed(() => ({
   upcoming: "即将开始",
   closed: "已截止",
 }[registrationState.value]));
+const chapterLabel = computed(() => props.activity.chapterName || "");
 
 const openDetails = () => {
   uni.navigateTo({ url: `/pages/activity/details?id=${props.activity.id}` });
-};
-
-const openRegisterEntry = () => {
-  if (registrationState.value !== "open") return;
-  openDetails();
 };
 </script>
 
@@ -50,7 +49,10 @@ const openRegisterEntry = () => {
     </view>
     <view class="activity-card__body">
       <view class="activity-card__status-row">
-        <view class="pill" :class="`pill--${registrationState}`">{{ statusLabel }}</view>
+        <view class="activity-card__tags">
+          <view class="pill" :class="`pill--${registrationState}`">{{ statusLabel }}</view>
+          <view v-if="chapterLabel" class="pill activity-card__chapter">{{ chapterLabel }}</view>
+        </view>
         <text class="activity-card__capacity">{{ capacityText }}</text>
       </view>
       <view class="activity-card__title">{{ activity.name }}</view>
@@ -73,13 +75,13 @@ const openRegisterEntry = () => {
 .activity-card__month { display: block; margin-top: 6rpx; font-size: 19rpx; }
 .activity-card__body { padding: 28rpx 30rpx 30rpx; }
 .activity-card__status-row { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
-.activity-card__capacity { color: var(--alumni-muted); font-size: 22rpx; }
+.activity-card__tags { min-width: 0; display: flex; align-items: center; gap: 10rpx; }
+.activity-card__chapter { flex: none; background: var(--alumni-primary-soft); color: var(--alumni-primary); }
+.activity-card__capacity { flex: none; color: var(--alumni-muted); font-size: 22rpx; }
 .pill--full, .pill--closed { background: rgba(199, 75, 66, 0.09); color: var(--alumni-danger); }
 .pill--upcoming { background: var(--alumni-primary-soft); color: var(--alumni-primary); }
 .activity-card__title { margin-top: 18rpx; color: var(--alumni-text); font-family: "Songti SC", serif; font-size: 34rpx; font-weight: 600; line-height: 1.4; white-space: pre-line; }
 .activity-card__meta { display: flex; flex-direction: column; gap: 6rpx; margin-top: 16rpx; color: var(--alumni-muted); font-size: 23rpx; line-height: 1.5; }
 .activity-card__sponsor { margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid var(--alumni-border); color: var(--alumni-muted); font-size: 22rpx; }
-.activity-card__actions { display: flex; justify-content: flex-end; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid var(--alumni-border); }
-.activity-card__register { min-height: 58rpx; padding: 8rpx 0 8rpx 20rpx; color: var(--alumni-primary); font-size: 24rpx; }
 @media (prefers-reduced-motion: reduce) { .activity-card { transition: none; } }
 </style>

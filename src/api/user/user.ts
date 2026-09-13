@@ -12,7 +12,13 @@ import type {
     UpdateEducation,
     UpdateEducationResponse,
     ExchangeWxPhoneResp,
-    UserInfo
+    UserInfo,
+    RegisterProfileData,
+    RegisterProfileResponse,
+    UserProfile,
+    UpdateProfileData,
+    Education,
+    Employment
 } from '@/api/user/user-interface';
 import { ApiError, httpRequest } from '@/api/request';
 
@@ -24,6 +30,55 @@ const assertAuthSession = <T extends SignInResponse>(
         throw new ApiError(fallback);
     }
     return session;
+};
+
+/**
+ * 注册并同时补齐分会/毕业年份/出生日期，触发名册自动核验（契约 2.2）。
+ * 返回 memberRole / autoVerified / chapterContact，页面据此展示结果弹层。
+ */
+export const registerProfile = async (data: RegisterProfileData): Promise<RegisterProfileResponse> => {
+    const session = await httpRequest<RegisterProfileResponse>({
+        url: '/user/register',
+        method: 'POST',
+        data,
+        auth: false,
+    });
+    return assertAuthSession(session, '注册失败，请重试');
+};
+
+// 获取用户档案（契约 2.3，含 memberRole / chapterId / profileComplete）
+export const getProfile = (): Promise<UserProfile> => {
+    return httpRequest<UserProfile>({
+        url: '/user/profile',
+        method: 'GET',
+    });
+};
+
+// 更新用户档案（契约 2.4，未传字段服务端不改动）
+export const updateProfile = (data: UpdateProfileData): Promise<UserProfile> => {
+    return httpRequest<UserProfile>({
+        url: '/user/profile',
+        method: 'PATCH',
+        data,
+    });
+};
+
+// 整体替换教育经历（契约 2.5），返回最新档案
+export const replaceEducations = (educations: Education[]): Promise<UserProfile> => {
+    return httpRequest<UserProfile>({
+        url: '/user/educations',
+        method: 'PUT',
+        data: { educations },
+    });
+};
+
+// 整体替换工作经历（契约 2.6），返回最新档案
+export const replaceEmployments = (employments: Employment[]): Promise<UserProfile> => {
+    return httpRequest<UserProfile>({
+        url: '/user/employments',
+        method: 'PUT',
+        data: { employments },
+    });
 };
 // 发送验证码
 export const sendVerifyCode = (data: SendVerifyCode): Promise<SendVerifyCodeResponse> => {

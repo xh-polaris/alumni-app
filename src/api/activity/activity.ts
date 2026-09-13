@@ -4,10 +4,38 @@ import type {
     getMyActivityRegistrationsResponse,
     getActivityListData,
     getActivityListResponse,
+    GetPublicActivitiesData,
+    GetPublicActivitiesResponse,
+    PublicActivity,
     registerData,
     registerResponse, updateActivityData, updateActivityResponse,
 } from "@/api/activity/activity-interface";
 import {httpRequest} from "@/api/request";
+
+const buildChapterQuery = (chapterId?: string) =>
+    chapterId ? `&chapterId=${encodeURIComponent(chapterId)}` : "";
+
+/**
+ * @description 获取公共活动列表（契约 2.9）。不传 chapterId 表示全部分会
+ */
+export const getPublicActivities = (data: GetPublicActivitiesData): Promise<GetPublicActivitiesResponse> => {
+    return httpRequest<GetPublicActivitiesResponse>({
+        url: `/activities?page=${data.page}&pageSize=${data.pageSize}${buildChapterQuery(data.chapterId)}`,
+        method: 'GET',
+        auth: false,
+    });
+}
+
+/**
+ * @description 获取公共活动详情（契约 2.10）
+ */
+export const getPublicActivityDetail = (id: string): Promise<PublicActivity> => {
+    return httpRequest<PublicActivity>({
+        url: `/activities/${id}`,
+        method: 'GET',
+        auth: false,
+    });
+}
 
 
 /**

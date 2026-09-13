@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import RegionPicker from "@/components/RegionPicker.vue";
 import type { Employment } from "@/api/user/user-interface";
 
 const model = defineModel<Employment[]>({ required: true });
@@ -76,6 +77,10 @@ const addEmployment = () => {
     industry: "",
     entry: new Date().getFullYear(),
     departure: 0,
+    provinceCode: "",
+    provinceName: "",
+    cityCode: "",
+    cityName: "",
   }];
 };
 const removeEmployment = (index: number) => {
@@ -117,6 +122,7 @@ const onDepartureChange = (index: number, event: { detail: { value: string | num
           <text class="timeline__year">{{ item.entry || "年份未填" }} — {{ item.departure || "至今" }}</text>
           <view class="timeline__organization">{{ item.organization || "单位未填写" }}</view>
           <view class="timeline__position">{{ item.position || "职位未填写" }}<text v-if="item.industry"> · {{ item.industry }}</text></view>
+          <view v-if="item.cityName || item.provinceName" class="timeline__region">{{ item.provinceName }}{{ item.cityName && item.cityName !== item.provinceName ? ` · ${item.cityName}` : "" }}</view>
         </view>
       </view>
       <view v-else class="empty-copy">尚未添加工作经历</view>
@@ -147,6 +153,11 @@ const onDepartureChange = (index: number, event: { detail: { value: string | num
             </picker>
           </view>
         </view>
+        <RegionPicker
+          v-model="model[index]"
+          label="工作所在地区（选填）"
+          placeholder="请选择省 / 市（选填）"
+        />
       </view>
       <button class="secondary-button add-button" @click="addEmployment">添加工作经历</button>
       <view class="button-row editor-actions"><button class="secondary-button" @click="cancelEdit">取消</button><button class="primary-button" @click="save">保存</button></view>
@@ -167,6 +178,7 @@ const onDepartureChange = (index: number, event: { detail: { value: string | num
 .timeline__year { color: var(--alumni-muted); font-size: 20rpx; }
 .timeline__organization { margin-top: 5rpx; color: var(--alumni-text); font-size: 27rpx; font-weight: 600; }
 .timeline__position { margin-top: 5rpx; color: var(--alumni-muted); font-size: 23rpx; }
+.timeline__region { margin-top: 5rpx; color: var(--alumni-muted); font-size: 21rpx; }
 .empty-copy { padding: 46rpx 0 16rpx; color: var(--alumni-muted); font-size: 24rpx; text-align: center; }
 .editor-item { margin-top: 24rpx; padding: 24rpx; border-radius: var(--alumni-radius-md); background: var(--alumni-surface-muted); }
 .editor-item__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18rpx; font-size: 24rpx; font-weight: 600; }

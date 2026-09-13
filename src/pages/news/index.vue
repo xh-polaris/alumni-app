@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, shallowRef } from "vue";
 import { onLoad, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
+import BrandHero from "@/components/BrandHero.vue";
+import ChapterSwitcher from "@/components/ChapterSwitcher.vue";
 import Layout from "@/components/Layout.vue";
-import PageHeader from "@/components/PageHeader.vue";
 import StatePanel from "@/components/StatePanel.vue";
 import { getArticleList } from "@/api/article/article";
 import type { Article } from "@/api/article/article-interface";
 import { getErrorMessage } from "@/api/request";
+import { useChapters } from "@/composables/useChapters";
 
 const PAGE_SIZE = 10;
 const articles = shallowRef<Article[]>([]);
@@ -15,6 +17,8 @@ const hasMore = ref(true);
 const isInitialLoading = ref(true);
 const isLoadingMore = ref(false);
 const errorMessage = ref("");
+const activeChapterId = ref("");
+const { chapters, loadChapters } = useChapters();
 
 const formatPublishTime = (timestamp: number) => {
   if (!timestamp) return "刚刚发布";
@@ -32,7 +36,11 @@ const fetchArticles = async (reset = false) => {
   errorMessage.value = "";
 
   try {
-    const response = await getArticleList({ page: targetPage, pageSize: PAGE_SIZE });
+    const response = await getArticleList({
+      page: targetPage,
+      pageSize: PAGE_SIZE,
+      chapterId: activeChapterId.value || undefined,
+    });
     const next = response.items ?? [];
     articles.value = reset ? next : [...articles.value, ...next];
     hasMore.value = articles.value.length < response.total;
@@ -45,6 +53,24 @@ const fetchArticles = async (reset = false) => {
   }
 };
 
+const onChapterChange = (chapterId: string) => {
+  activeChapterId.value = chapterId;
+  page.value = 1;
+  hasMore.value = true;
+  articles.value = [];
+  isInitialLoading.value = true;
+  fetchArticles(true);
+};
+
+const copyLink = (url: string) => {
+  uni.setClipboardData({
+    data: url,
+    success: () => {
+      uni.showToast({ title: "链接已复制，请在浏览器打开", icon: "none" });
+    },
+  });
+};
+
 const openArticle = (article: Article) => {
   if (!article.wechatUrl) {
     uni.showToast({ title: "暂无文章链接", icon: "none" });
@@ -53,19 +79,33 @@ const openArticle = (article: Article) => {
 
   // #ifdef H5
   window.open(article.wechatUrl, "_blank", "noopener,noreferrer");
+  return;
+  // #endif
+
+  // #ifdef MP-WEIXIN
+  uni.navigateTo({
+    url: `/pages/webview/index?src=${encodeURIComponent(article.wechatUrl)}`,
+    complete: (result: { errMsg?: string }) => {
+      // 链接不在业务域名白名单时 web-view 会失败，回退到复制链接
+      if (result?.errMsg && !result.errMsg.includes("ok")) copyLink(article.wechatUrl);
+    },
+  });
+  return;
   // #endif
 
   // #ifndef H5
-  uni.setClipboardData({
-    data: article.wechatUrl,
-    success: () => {
-      uni.showToast({ title: "链接已复制，请在浏览器打开", icon: "none" });
-    },
-  });
+  // #ifndef MP-WEIXIN
+  copyLink(article.wechatUrl);
+  // #endif
   // #endif
 };
 
-onLoad(() => fetchArticles(true));
+const loadAll = () => {
+  loadChapters();
+  fetchArticles(true);
+};
+
+onLoad(loadAll);
 onPullDownRefresh(async () => {
   await fetchArticles(true);
   uni.stopPullDownRefresh();
@@ -77,7 +117,14 @@ onReachBottom(() => fetchArticles());
   <Layout tone="warm">
     <view class="page-shell">
       <view class="page-shell__content">
-        <PageHeader eyebrow="NEWS" title="校友资讯" description="商会动态与校友活动信息" />
+        <BrandHero eyebrow="NINGBO LUNZHONG ALUMNI" title="仑中校友" description="分会资讯与校友动态" />
+
+        <ChapterSwitcher
+          :chapters="chapters"
+          :model-value="activeChapterId"
+          all-label="全部"
+          @change="onChapterChange"
+        />
 
         <view v-if="isInitialLoading" class="news-skeletons">
           <view v-for="item in 3" :key="item" class="news-skeleton surface-card-padding">
@@ -115,9 +162,10 @@ onReachBottom(() => fetchArticles());
             <image v-if="article.cover" class="news-card__cover" :src="article.cover" mode="aspectFill" />
             <view class="news-card__body">
               <view class="news-card__meta">
-                <text>{{ article.source || "校友资讯" }}</text>
-                <text>{{ formatPublishTime(article.publishTime) }}</text>
+                <view v-if="article.chapterName" class="pill news-card__chapter">{{ article.chapterName }}</view>
+                <text class="news-card__time">{{ formatPublishTime(article.publishTime) }}</text>
               </view>
+              <view class="news-card__source">{{ article.source || "校友资讯" }}</view>
               <view class="news-card__title">{{ article.title }}</view>
               <view class="news-card__summary">{{ article.summary }}</view>
               <view class="news-card__footer">
@@ -152,7 +200,10 @@ onReachBottom(() => fetchArticles());
 .news-card__cover { width: 100%; height: 260rpx; display: block; background: var(--alumni-primary-soft); }
 .news-card__body { padding: 30rpx; }
 .news-card__meta { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; color: var(--alumni-muted); font-size: 22rpx; }
-.news-card__title { margin-top: 16rpx; color: var(--alumni-text); font-family: "Songti SC", "STSong", serif; font-size: 34rpx; font-weight: 600; line-height: 1.42; }
+.news-card__chapter { flex: none; }
+.news-card__time { flex: none; }
+.news-card__source { margin-top: 16rpx; color: var(--alumni-muted); font-size: 22rpx; }
+.news-card__title { margin-top: 10rpx; color: var(--alumni-text); font-family: "Songti SC", "STSong", serif; font-size: 34rpx; font-weight: 600; line-height: 1.42; }
 .news-card__summary { margin-top: 14rpx; color: var(--alumni-muted); font-size: 25rpx; line-height: 1.62; }
 .news-card__footer { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; margin-top: 24rpx; padding-top: 18rpx; border-top: 1rpx solid var(--alumni-border); color: var(--alumni-muted); font-size: 22rpx; }
 .news-card__link { color: var(--alumni-primary); font-weight: 600; }

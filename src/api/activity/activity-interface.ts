@@ -73,6 +73,43 @@ export interface Activity {
 }
 
 /**
+ * @description 公共活动（契约 2.9 / 2.10 GET /activities）
+ * 相比旧 Activity 多出 chapterId / chapterName / registrationCount。
+ * 注意：registrationCount 才是已报名人数；旧接口把人数放在 status 上，新接口不再如此。
+ */
+export interface PublicActivity {
+    id: string;
+    cover: string;
+    name: string;
+    location: string;
+    exactLocation: string;
+    sponsor: string;
+    chapterId: string;
+    chapterName: string;
+    start: number;
+    registerStart: number;
+    registerEnd: number;
+    description: string;
+    contact: string;
+    limit: number;
+    status: number;
+    registrationCount: number;
+}
+
+export interface GetPublicActivitiesData {
+    chapterId?: string;
+    page: number;
+    pageSize: number;
+}
+
+export interface GetPublicActivitiesResponse {
+    items: PublicActivity[];
+    total: number;
+    page: number;
+    pageSize: number;
+}
+
+/**
  * @description 获取活动详情
  */
 export interface getActivityDetailsData {
