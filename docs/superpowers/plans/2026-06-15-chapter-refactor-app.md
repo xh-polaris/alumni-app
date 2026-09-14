@@ -338,8 +338,11 @@ export function findRegion(provinceCode: string, cityCode: string): { provinceNa
 
 ## 8. BrandHero 的校园线稿
 
+> 本节记录的是**当时**的过程。定稿后已清理原照片、抽线 SVG、过程预览图与三个生成脚本，
+> 现仅保留结论性说明，见 `dev/README.md`。下表脚本路径已不存在。
+
 线稿按**实拍照片**绘制，并已按版式要求收敛为「只画建筑」的极简版。
-参考照片：`dev/reference/PT6A6031.jpg`（宁波市北仑中学 体育馆 + 钟楼实景）。
+参考照片：（曾为 `dev/reference/PT6A6031.jpg`，宁波市北仑中学 体育馆 + 钟楼实景，已删除）。
 
 ### 8.1 从照片到线条的流程
 
@@ -352,8 +355,8 @@ export function findRegion(provinceCode: string, cityCode: string): { provinceNa
 | `dev/build-hero-art.py` | 按实测比例生成 Hero 线稿 SVG（坐标全部来自照片测量，可复现） |
 | `dev/preview-hero-art.py` | 按 **Hero 真实尺寸**光栅化预览：模拟 `slice` 裁切、叠 scrim、画文案占位块 |
 
-原始抽线结果与最终线稿预览都保存在 `dev/reference/`（`trace-skyline.svg`、
-`preview-1-traced-from-photo.png`、`preview-2-drawn-hero-art.png`）便于对照。
+原始抽线结果与最终线稿预览当时保存在 `dev/reference/`（`trace-skyline.svg`、
+`preview-1-traced-from-photo.png`、`preview-2-drawn-hero-art.png`）便于对照，**现已随脚本一并删除**。
 
 照片测量（占画面高的比例 → 本稿画布 y）：
 
